@@ -1,11 +1,35 @@
 # Repository Map
 
-This repository is currently a documentation-first shell. The code paths below describe the intended map once the website implementation is added.
+This repository now contains a static landing-page implementation plus the longer-term target structure for the full website client.
 
 ## App Bootstrap & Composition
 
+- `index.html`
+  Current home page document. Defines the web home surface with live trending, leaderboards, counties, filters entry, political parties, and publicly traded companies.
+
+- `styles.css`
+  Shared visual system for the current web pages, including the light-mode ContactPit palette translated into a web-first layout language.
+
+- `script.js`
+  Current home-page interaction layer. Loads live home data and renders the requested sections from shared backend feeds.
+
+- `api/home.js`
+  Same-origin serverless aggregator for the iOS home endpoints: trending, leaderboards, catalog, and counties.
+
+- `filters/index.html`
+  Dedicated filters page entrypoint for the upcoming web leadlist workflow.
+
+- `blog/index.html`
+  Dedicated blog page entrypoint for editorial and product-writing rollout.
+
+- `assets/ios/**`
+  Static asset bundle copied from the iOS asset catalog for logos, county shapes, and brand imagery used by the web pages.
+
+- `builder/index.html`
+  Transitional route that redirects the old `/builder` path to the new landing page.
+
 - `src/main.*` or framework bootstrap entry
-  Initializes the client application, mounts the root app shell, and installs providers for routing, session state, configuration, and telemetry.
+  Intended future application bootstrap when the repository grows beyond a static landing page.
 
 - `src/app/**`
   Root layout, route shell, provider composition, and top-level navigation behavior.

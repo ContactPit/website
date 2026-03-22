@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ContactPit | Home</title>
+    <meta
+      name="description"
+      content="ContactPit for the web: trending search activity, leaderboards, counties, political parties, and publicly traded companies."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="page-home">
+    <div class="site-shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="ContactPit home">
+          <img class="brand-mark-image" src="./assets/ios/Icon.svg" alt="" />
+          <span class="brand-text">ContactPit</span>
+        </a>
+        <nav class="main-nav" aria-label="Main navigation">
+          <a class="is-active" href="/">Home</a>
+          <a href="/filters/">Filters</a>
+          <a href="/blog/">Blog</a>
+        </nav>
+        <div class="topbar-actions">
+          <a class="ghost-link" href="/filters/">Open filters</a>
+          <a class="primary-link" href="#catalog">Explore market boards</a>
+        </div>
+      </header>
+
+      <main>
+        <section class="hero section" id="hero">
+          <div class="hero-copy">
+            <p class="eyebrow">Web client rollout</p>
+            <h1>The ContactPit home surface, rebuilt for the browser.</h1>
+            <p class="hero-text">
+              This homepage follows the same home logic as the iOS app: trending discovery,
+              leaderboards, filter entry, counties, political parties, and publicly traded company
+              boards. The data comes from the same backend endpoints used in the app.
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#trending">See live sections</a>
+              <a class="button button-secondary" href="/filters/">Go to filters</a>
+            </div>
+            <ul class="hero-metrics" aria-label="Home capabilities">
+              <li>
+                <strong>6</strong>
+                <span>home sections aligned with the iOS app</span>
+              </li>
+              <li>
+                <strong>4</strong>
+                <span>live backend feeds loaded through one page</span>
+              </li>
+              <li>
+                <strong>1</strong>
+                <span>web-first interface instead of a mobile clone</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="hero-stage">
+            <div class="hero-orb hero-orb-a"></div>
+            <div class="hero-orb hero-orb-b"></div>
+            <div class="command-card">
+              <div class="command-topline">
+                <span class="signal-dot"></span>
+                <span>What ContactPit actually does</span>
+              </div>
+              <div class="capability-intro">
+                <p class="capability-title">A full company-intelligence workflow, not a brochure page.</p>
+                <p class="capability-copy">
+                  Search companies and people, scan live boards, build filters, inspect regions,
+                  compare market players, and move into lead-generation workflows.
+                </p>
+              </div>
+              <div class="capability-map">
+                <article class="capability-node capability-node-primary">
+                  <p class="result-label">Search</p>
+                  <h3>Company + person lookup</h3>
+                  <span class="result-chip">core flow</span>
+                </article>
+                <article class="capability-node">
+                  <p class="result-label">Filters</p>
+                  <h3>Leadlists and targeting</h3>
+                </article>
+                <article class="capability-node">
+                  <p class="result-label">Leaderboards</p>
+                  <h3>Employers, salaries, turnover, profit</h3>
+                </article>
+                <article class="capability-node">
+                  <p class="result-label">Regions</p>
+                  <h3>County-level signals and activity</h3>
+                </article>
+                <article class="capability-node">
+                  <p class="result-label">Catalogs</p>
+                  <h3>Political parties and listed companies</h3>
+                </article>
+                <article class="capability-node capability-node-accent">
+                  <p class="result-label">Outcome</p>
+                  <h3>Discovery into revenue workflow</h3>
+                </article>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="data-status section-tight">
+          <div class="status-banner" id="home-status">Loading home data…</div>
+        </section>
+
+        <section class="section" id="trending">
+          <div class="section-heading">
+            <p class="eyebrow">Trending</p>
+            <h2>What people are searching right now.</h2>
+            <p>
+              The iOS app switches between weekly and monthly trending boards. The web version does
+              the same, but gives the content more room to breathe.
+            </p>
+          </div>
+
+          <div class="trending-shell">
+            <div class="trending-picker" id="trending-tabs"></div>
+            <div class="card-rail card-rail-trending" id="trending-grid"></div>
+          </div>
+        </section>
+
+        <section class="section" id="leaderboards">
+          <div class="section-heading">
+            <p class="eyebrow">Leaderboards</p>
+            <h2>Rankings without the mobile banner treatment.</h2>
+            <p>
+              Same feed as the app. Different presentation: each leaderboard becomes a compact
+              ranking card with the top companies visible immediately.
+            </p>
+          </div>
+          <div class="leaderboard-grid" id="leaderboards-grid"></div>
+        </section>
+
+        <section class="section" id="filter-banner">
+          <a class="filters-banner" href="/filters/">
+            <div class="filters-banner-copy">
+              <p class="eyebrow">Filters</p>
+              <h2>Build the exact outbound segment you want, then turn it into revenue.</h2>
+              <p>
+                Filters are the commercial core of ContactPit. This section needs to feel like the
+                primary action on the page, because it is.
+              </p>
+              <div class="filters-banner-points">
+                <span>Live count checks</span>
+                <span>Audience narrowing</span>
+                <span>Leadlist intent</span>
+              </div>
+              <span class="button button-primary">Open filters</span>
+            </div>
+            <div class="filters-banner-art filters-banner-art-abstract" aria-hidden="true">
+              <div class="filter-orbit filter-orbit-a"></div>
+              <div class="filter-orbit filter-orbit-b"></div>
+              <div class="filter-orbit filter-orbit-c"></div>
+              <div class="filter-panel filter-panel-large"></div>
+              <div class="filter-panel filter-panel-mid"></div>
+              <div class="filter-panel filter-panel-small"></div>
+            </div>
+          </a>
+        </section>
+
+        <section class="section" id="counties">
+          <div class="section-heading">
+            <p class="eyebrow">Counties</p>
+            <h2>A county view that feels analytical instead of decorative.</h2>
+            <p>
+              The app uses county cards and route depth. For now the website turns counties into an
+              insight grid with visual identity, top activity, and key metrics.
+            </p>
+          </div>
+          <div class="counties-grid" id="counties-grid"></div>
+        </section>
+
+        <section class="section" id="catalog">
+          <div class="section-heading">
+            <p class="eyebrow">Political parties</p>
+            <h2>Current party board from the same catalog feed as iOS.</h2>
+          </div>
+          <div class="catalog-grid catalog-grid-parties" id="parties-grid"></div>
+        </section>
+
+        <section class="section" id="public-companies">
+          <div class="section-heading">
+            <p class="eyebrow">Publicly traded companies</p>
+            <h2>Listed companies with market-cap framing and brand assets from iOS.</h2>
+          </div>
+          <div class="catalog-grid catalog-grid-listed" id="public-grid"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
