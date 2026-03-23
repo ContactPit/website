@@ -26,7 +26,7 @@ This repository now contains a static landing-page implementation plus the longe
   Dedicated about page entrypoint for company positioning, product framing, and brand context.
 
 - `assets/ios/**`
-  Static asset bundle copied from the iOS asset catalog for logos, county shapes, and brand imagery used by the web pages.
+  Static asset bundle copied from the iOS asset catalog for logos, county shapes, brand imagery, and optimized responsive page assets such as the about-page founder portrait variants.
 
 - `builder/index.html`
   Transitional route that redirects the old `/builder` path to the new landing page.

@@ -11,16 +11,29 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+    />
+    <link
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
     <link rel="stylesheet" href="../styles.css" />
   </head>
   <body>
     <div class="site-shell">
       <header class="topbar">
         <a class="brand" href="/" aria-label="ContactPit home">
-          <img class="brand-mark-image" src="../assets/ios/Icon.svg" alt="" />
+          <img class="brand-mark-image" src="../assets/ios/Icon.svg" alt="" width="40" height="40" />
           <span class="brand-text">ContactPit</span>
         </a>
         <nav class="main-nav" aria-label="Main navigation">
@@ -40,8 +53,14 @@
             <div class="about-header">
               <img
                 class="about-portrait"
-                src="../assets/ios/about-us.png"
+                src="../assets/ios/about-us-640.jpg"
+                srcset="../assets/ios/about-us-640.jpg 640w, ../assets/ios/about-us-1040.jpg 1040w"
+                sizes="(max-width: 760px) calc(100vw - 40px), 520px"
                 alt="ContactPit co-founders Rasmus Tauts and Ian Leman"
+                width="1040"
+                height="1040"
+                fetchpriority="high"
+                decoding="async"
               />
               <p class="about-kicker">Co-Founders</p>
               <div class="about-founders">
@@ -62,7 +81,7 @@
                   </svg>
                 </a>
                 <a class="about-action" href="https://www.linkedin.com/company/contactpit/" aria-label="Open ContactPit on LinkedIn" target="_blank" rel="noreferrer">
-                  <img src="../assets/ios/Linkedin.svg" alt="" />
+                  <img src="../assets/ios/Linkedin.svg" alt="" width="24" height="24" />
                 </a>
                 <a class="about-action" href="https://www.contactpit.com/" aria-label="Open ContactPit website" target="_blank" rel="noreferrer">
                   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -110,7 +129,7 @@
 
             <div class="about-company-footer">
               <div class="about-company-mark">
-                <img class="brand-mark-image" src="../assets/ios/Icon.svg" alt="" />
+                <img class="brand-mark-image" src="../assets/ios/Icon.svg" alt="" width="40" height="40" />
                 <span>ContactPit</span>
               </div>
               <p>Laeva 2, 10111 Tallinn</p>

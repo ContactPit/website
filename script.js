@@ -446,7 +446,7 @@ function renderCounties(data) {
             </div>
           </div>
           <p class="county-capital">${county.meta.capital}</p>
-          <img class="county-card-shape" src="${shape}" alt="" />
+          <img class="county-card-shape" src="${shape}" alt="" loading="lazy" decoding="async" />
         </article>
       `;
     })
@@ -484,7 +484,7 @@ function renderCatalogBoard(board, rootId) {
       return `
         <article class="catalog-card" style="background:${background}; color:${theme.ink}; --card-muted:${theme.muted}; --card-value:${theme.value}">
           <div class="catalog-top">
-            <img class="catalog-logo" src="${logo}" alt="${item.name} logo" loading="lazy" onerror="this.onerror=null;this.src='${assetSvgPath(meta.image_ref)}'" />
+            <img class="catalog-logo" src="${logo}" alt="${item.name} logo" loading="lazy" decoding="async" width="156" height="54" onerror="this.onerror=null;this.src='${assetSvgPath(meta.image_ref)}'" />
             <div class="catalog-copy">
               <h3 class="catalog-name">${transformedName(item.name)}</h3>
             </div>
@@ -577,7 +577,20 @@ async function loadHomeData() {
   }
 }
 
+function scheduleHomeDataLoad() {
+  const run = () => {
+    void loadHomeData();
+  };
+
+  if ("requestIdleCallback" in window) {
+    window.requestIdleCallback(run, { timeout: 1200 });
+    return;
+  }
+
+  window.setTimeout(run, 0);
+}
+
 if (document.body.classList.contains("page-home")) {
   setupSectionReveal();
-  loadHomeData();
+  scheduleHomeDataLoad();
 }

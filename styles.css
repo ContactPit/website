@@ -78,8 +78,7 @@ img {
   padding: 14px 18px;
   border: 1px solid rgba(255, 255, 255, 0.75);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.94);
   box-shadow: var(--shadow-soft);
 }
 
@@ -196,6 +195,12 @@ img {
   padding: 78px 0;
 }
 
+.page-home main > .section:not(#hero),
+.page-home .site-footer {
+  content-visibility: auto;
+  contain-intrinsic-size: 720px;
+}
+
 .reveal-on-scroll {
   opacity: 0;
   transform: translateY(28px);
@@ -293,8 +298,7 @@ img {
 .filters-banner,
 .page-hero-panel {
   border: 1px solid rgba(255, 255, 255, 0.72);
-  background: var(--surface);
-  backdrop-filter: blur(18px);
+  background: rgba(255, 255, 255, 0.96);
   box-shadow: var(--shadow-soft);
 }
 
@@ -948,7 +952,6 @@ img {
   border-radius: 26px;
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(12px);
   box-shadow: 0 20px 40px rgba(16, 10, 34, 0.18);
 }
 
@@ -1133,8 +1136,7 @@ img {
   padding: 24px;
   border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.76);
-  background: rgba(255, 255, 255, 0.74);
-  backdrop-filter: blur(18px);
+  background: rgba(255, 255, 255, 0.94);
   box-shadow: var(--shadow-soft);
 }
 
@@ -1300,10 +1302,18 @@ img {
 .about-portrait {
   display: block;
   width: min(100%, 520px);
+  height: auto;
   border-radius: 36px;
   overflow: hidden;
   -webkit-mask-image: -webkit-radial-gradient(white, black);
   box-shadow: var(--shadow-soft);
+}
+
+@supports (backdrop-filter: blur(8px)) {
+  .topbar {
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(12px);
+  }
 }
 
 .about-kicker,
