@@ -27,10 +27,10 @@
         rel="stylesheet"
       />
     </noscript>
-    <link rel="stylesheet" href="../styles.css" />
+    <link rel="stylesheet" href="../styles.css?v=20260323-25" />
   </head>
-  <body>
-    <div class="site-shell">
+  <body class="page-filters">
+    <div class="site-shell filters-shell">
       <header class="topbar">
         <a class="brand" href="/" aria-label="ContactPit home">
           <img class="brand-mark-image" src="../assets/ios/Icon.svg" alt="" width="40" height="40" />
@@ -47,26 +47,439 @@
         </div>
       </header>
 
-      <main>
-        <section class="page-hero section">
-          <div class="page-hero-panel">
-            <p class="eyebrow">Filters</p>
-            <h1>The web filter workflow is the next major build.</h1>
-            <p>
-              The iOS app’s filter surface is deeper than a simple contact form. It includes
-              leadlist shaping, count checks, and order preparation. This page is reserved for that
-              same client workflow on the web.
-            </p>
+      <aside class="filters-floating-summary" id="floating-count-card" aria-live="polite" hidden>
+        <section class="filters-floating-card filters-floating-card-count">
+          <div class="filters-floating-summary-value" id="floating-companies-count-value">...</div>
+          <p class="filters-floating-summary-meta" id="floating-count-status-text">Companies</p>
+        </section>
+        <section class="filters-floating-card filters-floating-card-filters">
+          <div class="filters-floating-card-head">
+            <div class="filters-floating-chips" id="floating-active-filter-chips"></div>
+            <button class="button button-secondary filters-floating-reset" id="reset-filters-button-floating" type="button">
+              Reset
+            </button>
           </div>
-          <div class="empty-state">
-            <h3>Planned next</h3>
-            <p>
-              Query builder, live count checks, leadlist intent, pricing context, and backend wiring
-              to the same endpoints the app uses.
-            </p>
+        </section>
+        <section class="filters-floating-card filters-floating-card-order">
+          <a class="primary-link filters-floating-order" href="/filters/">Order list</a>
+        </section>
+      </aside>
+
+      <main>
+        <section class="filters-dashboard section-tight" id="filters-hero-section">
+          <aside class="filters-sidebar">
+            <section class="filters-summary-card" id="count-card" aria-live="polite">
+              <div class="filters-summary-block">
+                <p class="filters-summary-label">Companies</p>
+                <div class="filters-summary-value" id="companies-count-value">...</div>
+                <p class="filters-summary-meta" id="count-status-text" hidden>
+                  Loading filter configuration and legends.
+                </p>
+              </div>
+              <div class="filters-summary-block">
+                <a class="primary-link filters-summary-order" href="/filters/">Order list</a>
+              </div>
+            </section>
+
+            <section class="filters-applied-card">
+              <div class="filters-summary-block filters-summary-block-actions">
+                <div class="filters-summary-empty" id="active-filter-empty">No filters applied</div>
+                <div class="filters-summary-chips" id="active-filter-chips"></div>
+                <button class="button button-secondary" id="reset-filters-button" type="button" hidden>
+                  Reset
+                </button>
+              </div>
+            </section>
+
+            <nav class="filters-toc" aria-label="Filters contents">
+              <a href="#section-location">Location</a>
+              <a href="#section-emtak">EMTAK codes</a>
+              <a href="#section-employees">Employees</a>
+              <a href="#section-turnover">Turnover</a>
+              <a href="#section-legal-forms">Legal forms</a>
+              <a href="#section-status">Status</a>
+              <a href="#section-tax-information">Tax information</a>
+              <a href="#section-registration">Registration date</a>
+              <a href="#section-website-availability">Website availability</a>
+              <a href="#section-annual-reports">Annual reports</a>
+              <a href="#section-beneficiaries">Beneficiaries</a>
+              <a href="#section-board-members">Board members</a>
+              <a href="#section-economic-activities">Economic activities</a>
+              <a href="#section-operating-licences">Operating licences</a>
+            </nav>
+          </aside>
+
+          <div class="filters-content">
+                <section class="filters-intro-card">
+                  <div class="filters-intro-copy">
+                    <p class="eyebrow">Leadlist Filters</p>
+                    <h1>Build your target list.</h1>
+                    <p>
+                      Filter by location, industry, company profile, and people signals to narrow the list
+                      before you order it.
+                    </p>
+                  </div>
+                </section>
+
+                <section class="filters-section" id="section-location">
+                  <header class="filters-section-head">
+                    <h2>Location</h2>
+                  </header>
+                  <div class="filters-panel-grid filters-panel-grid-single">
+                    <article class="filter-card" data-filter-type="location">
+                      <div class="location-tree" id="location-results"></div>
+                    </article>
+                  </div>
+                </section>
+
+                <section class="filters-section" id="section-emtak">
+                  <header class="filters-section-head">
+                    <h2>EMTAK codes</h2>
+                  </header>
+                  <div class="filters-panel-grid filters-panel-grid-single">
+                    <article class="filter-card" data-filter-type="emtak_codes">
+                      <div class="emtak-tree" id="emtak-results"></div>
+                    </article>
+                  </div>
+                </section>
+
+                <section class="filters-section" id="section-employees">
+                  <header class="filters-section-head">
+                    <h2>Employees</h2>
+                  </header>
+                  <div class="filters-panel-grid filters-panel-grid-single">
+                    <article class="filter-card" data-filter-type="employees">
+                      <div class="preset-grid" id="employees-presets"></div>
+                      <div class="range-grid">
+                        <label class="field">
+                          <span>Minimum</span>
+                          <input id="employees-min" inputmode="numeric" type="number" min="0" placeholder="10" />
+                        </label>
+                        <label class="field">
+                          <span>Maximum</span>
+                          <input id="employees-max" inputmode="numeric" type="number" min="0" placeholder="500" />
+                        </label>
+                      </div>
+                    </article>
+                  </div>
+                </section>
+
+                <section class="filters-section" id="section-turnover">
+                  <header class="filters-section-head">
+                    <h2>Turnover</h2>
+                  </header>
+                  <div class="filters-panel-grid filters-panel-grid-single">
+                    <article class="filter-card" data-filter-type="turnover">
+                      <div class="stack-fields">
+                        <div class="range-grid">
+                          <label class="field">
+                            <span>Last quarter min</span>
+                            <input id="turnover-last-quarter-min" type="number" min="0" placeholder="10000" />
+                          </label>
+                          <label class="field">
+                            <span>Last quarter max</span>
+                            <input id="turnover-last-quarter-max" type="number" min="0" placeholder="250000" />
+                          </label>
+                        </div>
+                        <div class="range-grid">
+                          <label class="field">
+                            <span>Last 4 quarters min</span>
+                            <input id="turnover-last-four-min" type="number" min="0" placeholder="50000" />
+                          </label>
+                          <label class="field">
+                            <span>Last 4 quarters max</span>
+                            <input id="turnover-last-four-max" type="number" min="0" placeholder="1000000" />
+                          </label>
+                        </div>
+                      </div>
+                    </article>
+                  </div>
+                </section>
+
+                <section class="filters-section" id="section-legal-forms">
+                  <header class="filters-section-head">
+                    <h2>Legal forms</h2>
+                  </header>
+                  <div class="filters-panel-grid filters-panel-grid-single">
+                    <article class="filter-card" data-filter-type="legal_forms">
+                      <div class="pill-grid" id="legal-forms-grid"></div>
+                    </article>
+                  </div>
+                </section>
+
+                <section class="filters-section" id="section-status">
+                  <header class="filters-section-head">
+                    <h2>Status</h2>
+                  </header>
+                  <div class="filters-panel-grid filters-panel-grid-single">
+                    <article class="filter-card" data-filter-type="status">
+                      <div class="pill-grid status-grid" id="status-grid"></div>
+                      <div class="conditional-block" id="status-detail-block">
+                        <div class="section-divider"></div>
+                        <div class="stack-fields">
+                          <div>
+                            <div class="mini-head">
+                              <h4>Deletion reasons</h4>
+                              <div class="segmented segmented-compact" data-segmented="deletion-reason-mode">
+                                <button class="is-active" data-option-value="include" type="button">Include</button>
+                                <button data-option-value="exclude" type="button">Exclude</button>
+                              </div>
+                            </div>
+                            <label class="field">
+                              <span>Search reason</span>
+                              <input id="deletion-reason-search" type="search" placeholder="Merger, bankruptcy, liquidation..." />
+                            </label>
+                            <div class="selected-pills" id="selected-deletion-reasons"></div>
+                            <div class="filter-results filter-results-compact" id="deletion-reason-results"></div>
+                          </div>
+                          <div class="range-grid" id="deletion-date-grid">
+                            <label class="field">
+                              <span>Deletion date before</span>
+                              <input id="deletion-date-before" type="date" />
+                            </label>
+                            <label class="field">
+                              <span>Deletion date after</span>
+                              <input id="deletion-date-after" type="date" />
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  </div>
+                </section>
+
+                <section class="filters-section" id="section-tax-information">
+                  <header class="filters-section-head">
+                    <h2>Tax information</h2>
+                  </header>
+                  <div class="filters-panel-grid filters-panel-grid-single">
+                    <article class="filter-card" data-filter-type="tax_information">
+                      <div class="stack-fields">
+                        <div class="field-inline">
+                          <span>VAT registered</span>
+                          <div class="segmented segmented-compact" data-segmented="vat-registered">
+                            <button class="is-active" data-option-value="skip" type="button">Skip</button>
+                            <button data-option-value="include" type="button">Yes</button>
+                            <button data-option-value="exclude" type="button">No</button>
+                          </div>
+                        </div>
+                        <div class="field-inline">
+                          <span>Has tax debt</span>
+                          <div class="segmented segmented-compact" data-segmented="tax-debt">
+                            <button class="is-active" data-option-value="skip" type="button">Skip</button>
+                            <button data-option-value="include" type="button">Yes</button>
+                            <button data-option-value="exclude" type="button">No</button>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  </div>
+                </section>
+
+                <section class="filters-section" id="section-registration">
+                  <header class="filters-section-head">
+                    <h2>Registration date</h2>
+                  </header>
+                  <div class="filters-panel-grid filters-panel-grid-single">
+                    <article class="filter-card" data-filter-type="registration">
+                      <div class="range-grid">
+                        <label class="field">
+                          <span>Before</span>
+                          <input id="registration-before" type="date" />
+                        </label>
+                        <label class="field">
+                          <span>After</span>
+                          <input id="registration-after" type="date" />
+                        </label>
+                      </div>
+                    </article>
+                  </div>
+                </section>
+
+                <section class="filters-section" id="section-website-availability">
+                  <header class="filters-section-head">
+                    <h2>Website availability</h2>
+                  </header>
+                  <div class="filters-panel-grid filters-panel-grid-single">
+                    <article class="filter-card" data-filter-type="website_available">
+                      <div class="segmented segmented-compact" data-segmented="website-available">
+                        <button class="is-active" data-option-value="skip" type="button">Skip</button>
+                        <button data-option-value="include" type="button">Yes</button>
+                        <button data-option-value="exclude" type="button">No</button>
+                      </div>
+                    </article>
+                  </div>
+                </section>
+
+                <section class="filters-section" id="section-annual-reports">
+                  <header class="filters-section-head">
+                    <h2>Annual reports</h2>
+                  </header>
+                  <div class="filters-panel-grid filters-panel-grid-single">
+                    <article class="filter-card" data-filter-type="annual_reports">
+                      <div class="field-inline">
+                        <span>Latest report submitted</span>
+                        <div class="segmented segmented-compact" data-segmented="annual-reports-latest">
+                          <button class="is-active" data-option-value="skip" type="button">Skip</button>
+                          <button data-option-value="include" type="button">Yes</button>
+                          <button data-option-value="exclude" type="button">No</button>
+                        </div>
+                      </div>
+                      <div class="stack-fields">
+                        <div>
+                          <p class="micro-label">Years submitted</p>
+                          <div class="pill-grid year-grid" id="years-submitted-grid"></div>
+                        </div>
+                        <div>
+                          <p class="micro-label">Years not submitted</p>
+                          <div class="pill-grid year-grid" id="years-not-submitted-grid"></div>
+                        </div>
+                      </div>
+                    </article>
+                  </div>
+                </section>
+
+                <section class="filters-section" id="section-beneficiaries">
+                  <header class="filters-section-head">
+                    <h2>Beneficiaries</h2>
+                  </header>
+                  <div class="filters-panel-grid filters-panel-grid-single">
+                    <article class="filter-card" data-filter-type="beneficiaries">
+                      <div class="range-grid">
+                        <label class="field">
+                          <span>Min count</span>
+                          <input id="beneficiaries-min" type="number" min="0" placeholder="1" />
+                        </label>
+                        <label class="field">
+                          <span>Max count</span>
+                          <input id="beneficiaries-max" type="number" min="0" placeholder="10" />
+                        </label>
+                        <label class="field">
+                          <span>Min age</span>
+                          <input id="beneficiaries-age-min" type="number" min="0" placeholder="18" />
+                        </label>
+                        <label class="field">
+                          <span>Max age</span>
+                          <input id="beneficiaries-age-max" type="number" min="0" placeholder="80" />
+                        </label>
+                      </div>
+                      <div class="stack-fields">
+                        <div class="field-inline">
+                          <span>Include foreigners</span>
+                          <div class="segmented segmented-compact" data-segmented="beneficiaries-foreigners">
+                            <button class="is-active" data-option-value="skip" type="button">Skip</button>
+                            <button data-option-value="include" type="button">Yes</button>
+                            <button data-option-value="exclude" type="button">No</button>
+                          </div>
+                        </div>
+                        <div class="field-inline">
+                          <span>Include e-residents</span>
+                          <div class="segmented segmented-compact" data-segmented="beneficiaries-eresidents">
+                            <button class="is-active" data-option-value="skip" type="button">Skip</button>
+                            <button data-option-value="include" type="button">Yes</button>
+                            <button data-option-value="exclude" type="button">No</button>
+                          </div>
+                        </div>
+                        <div class="field-inline">
+                          <span>Include permanent residents</span>
+                          <div class="segmented segmented-compact" data-segmented="beneficiaries-permanent-residents">
+                            <button class="is-active" data-option-value="skip" type="button">Skip</button>
+                            <button data-option-value="include" type="button">Yes</button>
+                            <button data-option-value="exclude" type="button">No</button>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  </div>
+                </section>
+
+                <section class="filters-section" id="section-board-members">
+                  <header class="filters-section-head">
+                    <h2>Board members</h2>
+                  </header>
+                  <div class="filters-panel-grid filters-panel-grid-single">
+                    <article class="filter-card" data-filter-type="board_members">
+                      <div class="range-grid">
+                        <label class="field">
+                          <span>Min count</span>
+                          <input id="board-members-min" type="number" min="0" placeholder="1" />
+                        </label>
+                        <label class="field">
+                          <span>Max count</span>
+                          <input id="board-members-max" type="number" min="0" placeholder="8" />
+                        </label>
+                        <label class="field">
+                          <span>Min age</span>
+                          <input id="board-members-age-min" type="number" min="0" placeholder="25" />
+                        </label>
+                        <label class="field">
+                          <span>Max age</span>
+                          <input id="board-members-age-max" type="number" min="0" placeholder="75" />
+                        </label>
+                      </div>
+                      <div class="stack-fields">
+                        <div class="field-inline">
+                          <span>Include foreigners</span>
+                          <div class="segmented segmented-compact" data-segmented="board-members-foreigners">
+                            <button class="is-active" data-option-value="skip" type="button">Skip</button>
+                            <button data-option-value="include" type="button">Yes</button>
+                            <button data-option-value="exclude" type="button">No</button>
+                          </div>
+                        </div>
+                        <div class="field-inline">
+                          <span>Include e-residents</span>
+                          <div class="segmented segmented-compact" data-segmented="board-members-eresidents">
+                            <button class="is-active" data-option-value="skip" type="button">Skip</button>
+                            <button data-option-value="include" type="button">Yes</button>
+                            <button data-option-value="exclude" type="button">No</button>
+                          </div>
+                        </div>
+                        <div class="field-inline">
+                          <span>Include permanent residents</span>
+                          <div class="segmented segmented-compact" data-segmented="board-members-permanent-residents">
+                            <button class="is-active" data-option-value="skip" type="button">Skip</button>
+                            <button data-option-value="include" type="button">Yes</button>
+                            <button data-option-value="exclude" type="button">No</button>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  </div>
+                </section>
+
+                <section class="filters-section" id="section-economic-activities">
+                  <header class="filters-section-head">
+                    <h2>Economic activities</h2>
+                  </header>
+                  <div class="filters-panel-grid filters-panel-grid-single">
+                    <article class="filter-card" data-filter-type="economic_activity">
+                      <label class="field field-search-minimal">
+                        <input id="economic-activity-search" type="search" placeholder="Construction, energy, training..." />
+                      </label>
+                      <div class="selected-pills" id="selected-economic-activities"></div>
+                      <div class="filter-results filter-results-compact" id="economic-activity-results"></div>
+                    </article>
+                  </div>
+                </section>
+
+                <section class="filters-section" id="section-operating-licences">
+                  <header class="filters-section-head">
+                    <h2>Operating licences</h2>
+                  </header>
+                  <div class="filters-panel-grid filters-panel-grid-single">
+                    <article class="filter-card" data-filter-type="operating_licences">
+                      <label class="field field-search-minimal">
+                        <input id="operating-licence-search" type="search" placeholder="Education, energy, radio, healthcare..." />
+                      </label>
+                      <div class="selected-pills" id="selected-operating-licences"></div>
+                      <div class="filter-results filter-results-compact" id="operating-licence-results"></div>
+                    </article>
+                  </div>
+                </section>
           </div>
         </section>
       </main>
     </div>
+    <script src="./filters.js?v=20260323-18"></script>
   </body>
 </html>

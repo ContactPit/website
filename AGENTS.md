@@ -35,10 +35,16 @@ After loading organization context, read repository documentation:
 - docs/ai-context.md
 - docs/repository-overview.md
 - docs/architectural-layers.md
+- docs/design-language.md
 - docs/repo-map.md
 - docs/dependency-graph.md
 - docs/call-graph.md
 - docs/entrypoints.md
+
+Visual consistency rule:
+
+- For new public-facing pages, use the home page in `index.html` and the canonical guidance in `docs/design-language.md` as the default design reference.
+- Match the implemented palette, typography, spacing, surface treatment, and overall visual tone unless an existing route already establishes an intentional variant.
 
 ## Project File Requirement
 

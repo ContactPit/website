@@ -17,7 +17,13 @@ This repository now contains a static landing-page implementation plus the longe
   Same-origin serverless aggregator for the iOS home endpoints: trending, leaderboards, catalog, and counties.
 
 - `filters/index.html`
-  Dedicated filters page entrypoint for the upcoming web leadlist workflow.
+  Dedicated filters page entrypoint for the live web leadlist workflow.
+
+- `filters/filters.js`
+  Client-side filters controller. Loads live filter config and legends, maintains browser selection state, and composes the same count payload shape used by the iOS app.
+
+- `api/filters.js`
+  Same-origin serverless proxy for the filters page. Aggregates filter configuration plus legends on `GET` and forwards company count checks on `POST`.
 
 - `blog/index.html`
   Dedicated blog page entrypoint for editorial and product-writing rollout.

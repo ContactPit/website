@@ -60,4 +60,5 @@ route request
 
 ## Current State
 
-- No runtime implementation exists in the repository yet, so these flows are intended behavior targets, not verified traces.
+- The repository already implements static runtime flows for the public routes `/`, `/filters/`, `/blog/`, and `/about/`.
+- The flows above still describe the broader intended client behavior as the site grows beyond the current static implementation.

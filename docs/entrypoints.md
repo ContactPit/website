@@ -2,6 +2,9 @@
 
 ## Application Startup
 
+- `vite.config.mjs`
+  Local development entrypoint. Serves the multi-page site and exposes local `/api/home` and `/api/filters` routes that proxy upstream backend data for browser testing.
+
 - `src/main.*` or framework bootstrap entry
   Primary runtime entrypoint. Mounts the app, installs providers, and starts client-side services.
 

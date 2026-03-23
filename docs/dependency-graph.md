@@ -58,4 +58,5 @@ The root web app is expected to depend on:
 
 ## Current State
 
-- No implementation files exist in this repository yet, so this graph is a target architecture baseline rather than a reflection of checked-in code.
+- Current implementation is a static site with shared behavior in `script.js`, shared styling in `styles.css`, and route-specific HTML entrypoints.
+- The graph above remains the target architecture for a future expanded client, not a full reflection of the current checked-in structure.
