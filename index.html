@@ -6,7 +6,7 @@
     <title>ContactPit | Home</title>
     <meta
       name="description"
-      content="ContactPit for the web: trending search activity, leaderboards, counties, political parties, and publicly traded companies."
+      content="ContactPit brings together search activity, rankings, county insights, political parties, and publicly traded companies in one company-intelligence workspace."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -27,119 +27,66 @@
           <a class="is-active" href="/">Home</a>
           <a href="/filters/">Filters</a>
           <a href="/blog/">Blog</a>
+          <a href="/about/">About us</a>
         </nav>
         <div class="topbar-actions">
-          <a class="ghost-link" href="/filters/">Open filters</a>
-          <a class="primary-link" href="#catalog">Explore market boards</a>
+          <a class="primary-link" href="/filters/">Build a list</a>
         </div>
       </header>
 
       <main>
         <section class="hero section" id="hero">
-          <div class="hero-copy">
-            <p class="eyebrow">Web client rollout</p>
-            <h1>The ContactPit home surface, rebuilt for the browser.</h1>
+          <div class="hero-copy hero-copy-centered">
+            <h1>Search the market with precision.</h1>
             <p class="hero-text">
-              This homepage follows the same home logic as the iOS app: trending discovery,
-              leaderboards, filter entry, counties, political parties, and publicly traded company
-              boards. The data comes from the same backend endpoints used in the app.
+              Find companies, people, registry codes, and market signals through one clean
+              workflow built for research, targeting, and outbound action.
             </p>
-            <div class="hero-actions">
-              <a class="button button-primary" href="#trending">See live sections</a>
-              <a class="button button-secondary" href="/filters/">Go to filters</a>
-            </div>
-            <ul class="hero-metrics" aria-label="Home capabilities">
-              <li>
-                <strong>6</strong>
-                <span>home sections aligned with the iOS app</span>
-              </li>
-              <li>
-                <strong>4</strong>
-                <span>live backend feeds loaded through one page</span>
-              </li>
-              <li>
-                <strong>1</strong>
-                <span>web-first interface instead of a mobile clone</span>
-              </li>
-            </ul>
-          </div>
-
-          <div class="hero-stage">
-            <div class="hero-orb hero-orb-a"></div>
-            <div class="hero-orb hero-orb-b"></div>
-            <div class="command-card">
-              <div class="command-topline">
-                <span class="signal-dot"></span>
-                <span>What ContactPit actually does</span>
-              </div>
-              <div class="capability-intro">
-                <p class="capability-title">A full company-intelligence workflow, not a brochure page.</p>
-                <p class="capability-copy">
-                  Search companies and people, scan live boards, build filters, inspect regions,
-                  compare market players, and move into lead-generation workflows.
-                </p>
-              </div>
-              <div class="capability-map">
-                <article class="capability-node capability-node-primary">
-                  <p class="result-label">Search</p>
-                  <h3>Company + person lookup</h3>
-                  <span class="result-chip">core flow</span>
-                </article>
-                <article class="capability-node">
-                  <p class="result-label">Filters</p>
-                  <h3>Leadlists and targeting</h3>
-                </article>
-                <article class="capability-node">
-                  <p class="result-label">Leaderboards</p>
-                  <h3>Employers, salaries, turnover, profit</h3>
-                </article>
-                <article class="capability-node">
-                  <p class="result-label">Regions</p>
-                  <h3>County-level signals and activity</h3>
-                </article>
-                <article class="capability-node">
-                  <p class="result-label">Catalogs</p>
-                  <h3>Political parties and listed companies</h3>
-                </article>
-                <article class="capability-node capability-node-accent">
-                  <p class="result-label">Outcome</p>
-                  <h3>Discovery into revenue workflow</h3>
-                </article>
-              </div>
-            </div>
+            <form class="hero-search-form hero-search-form-centered search-shell" action="/filters/" method="get">
+              <label class="hero-search-label" for="hero-search-input">Search</label>
+              <input
+                id="hero-search-input"
+                class="hero-search-input"
+                type="search"
+                name="q"
+                placeholder="Search companies, people, registry codes..."
+              />
+            </form>
           </div>
         </section>
 
-        <section class="data-status section-tight">
-          <div class="status-banner" id="home-status">Loading home data…</div>
-        </section>
-
-        <section class="section" id="trending">
+        <section class="section section-tight" id="trending">
           <div class="section-heading">
             <p class="eyebrow">Trending</p>
-            <h2>What people are searching right now.</h2>
-            <p>
-              The iOS app switches between weekly and monthly trending boards. The web version does
-              the same, but gives the content more room to breathe.
-            </p>
+            <h2>What people are searching.</h2>
           </div>
-
-          <div class="trending-shell">
-            <div class="trending-picker" id="trending-tabs"></div>
-            <div class="card-rail card-rail-trending" id="trending-grid"></div>
-          </div>
+          <div class="trending-marquee-group" id="trending-grid"></div>
         </section>
 
         <section class="section" id="leaderboards">
           <div class="section-heading">
             <p class="eyebrow">Leaderboards</p>
-            <h2>Rankings without the mobile banner treatment.</h2>
+            <h2>Rankings that surface the companies leading each category.</h2>
             <p>
-              Same feed as the app. Different presentation: each leaderboard becomes a compact
-              ranking card with the top companies visible immediately.
+              Compare top performers across employers, salaries, turnover, profit, and other key
+              business signals at a glance.
             </p>
           </div>
-          <div class="leaderboard-grid" id="leaderboards-grid"></div>
+          <div class="leaderboard-rail-shell">
+            <button class="rail-arrow rail-arrow-prev" id="leaderboards-prev" type="button" aria-label="Scroll leaderboards left">
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M11.75 4.5 6.25 10l5.5 5.5" />
+              </svg>
+            </button>
+            <div class="leaderboard-viewport">
+              <div class="leaderboard-grid" id="leaderboards-grid"></div>
+            </div>
+            <button class="rail-arrow rail-arrow-next" id="leaderboards-next" type="button" aria-label="Scroll leaderboards right">
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <path d="m8.25 4.5 5.5 5.5-5.5 5.5" />
+              </svg>
+            </button>
+          </div>
         </section>
 
         <section class="section" id="filter-banner">
@@ -148,8 +95,8 @@
               <p class="eyebrow">Filters</p>
               <h2>Build the exact outbound segment you want, then turn it into revenue.</h2>
               <p>
-                Filters are the commercial core of ContactPit. This section needs to feel like the
-                primary action on the page, because it is.
+                Narrow audiences, validate counts, and create lead lists around the exact company
+                profile you want to target.
               </p>
               <div class="filters-banner-points">
                 <span>Live count checks</span>
@@ -172,10 +119,10 @@
         <section class="section" id="counties">
           <div class="section-heading">
             <p class="eyebrow">Counties</p>
-            <h2>A county view that feels analytical instead of decorative.</h2>
+            <h2>Regional views that bring local market context into focus.</h2>
             <p>
-              The app uses county cards and route depth. For now the website turns counties into an
-              insight grid with visual identity, top activity, and key metrics.
+              Explore counties through a clear visual index and quickly orient around regional hubs
+              and market coverage.
             </p>
           </div>
           <div class="counties-grid" id="counties-grid"></div>
@@ -184,7 +131,8 @@
         <section class="section" id="catalog">
           <div class="section-heading">
             <p class="eyebrow">Political parties</p>
-            <h2>Current party board from the same catalog feed as iOS.</h2>
+            <h2 id="parties-title">Political parties</h2>
+            <p id="parties-subtitle"></p>
           </div>
           <div class="catalog-grid catalog-grid-parties" id="parties-grid"></div>
         </section>
@@ -192,11 +140,53 @@
         <section class="section" id="public-companies">
           <div class="section-heading">
             <p class="eyebrow">Publicly traded companies</p>
-            <h2>Listed companies with market-cap framing and brand assets from iOS.</h2>
+            <h2 id="public-title">Publicly traded companies</h2>
+            <p id="public-subtitle"></p>
           </div>
           <div class="catalog-grid catalog-grid-listed" id="public-grid"></div>
         </section>
+
+        <section class="section" id="testimonials">
+          <div class="section-heading">
+            <p class="eyebrow">Testimonials</p>
+            <h2>What customers say.</h2>
+          </div>
+          <div class="testimonials-feature" id="testimonials-grid"></div>
+        </section>
       </main>
+
+      <footer class="site-footer">
+        <div class="footer-brand">
+          <img class="footer-mark" src="./assets/ios/Icon.svg" alt="" />
+          <div>
+            <p class="footer-kicker">ContactPit</p>
+            <p class="footer-copy">
+              Company intelligence for discovery, targeting, filters, and outbound action.
+            </p>
+          </div>
+        </div>
+
+        <div class="footer-column">
+          <h3>Menu</h3>
+          <a href="/">Home</a>
+          <a href="/filters/">Filters</a>
+          <a href="/blog/">Blog</a>
+          <a href="/about/">About us</a>
+          <a href="#testimonials">Testimonials</a>
+        </div>
+
+        <div class="footer-column">
+          <h3>Quick contact</h3>
+          <a href="tel:+37256982772">+372 56982772</a>
+          <a href="mailto:contactpit@contactpit.com">contactpit@contactpit.com</a>
+          <p>Laeva 2, 10111 Tallinn</p>
+          <div class="footer-socials">
+            <a href="https://www.linkedin.com" target="_blank" rel="noreferrer">LinkedIn</a>
+            <a href="https://www.instagram.com" target="_blank" rel="noreferrer">Instagram</a>
+            <a href="https://x.com" target="_blank" rel="noreferrer">X</a>
+          </div>
+        </div>
+      </footer>
     </div>
 
     <script src="./script.js"></script>

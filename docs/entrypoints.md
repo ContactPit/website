@@ -45,4 +45,4 @@
 
 ## Current State
 
-- No code-defined entrypoints exist yet in this repository. Update this file when the actual framework and route tree are added.
+- Static page entrypoints currently include `/`, `/filters/`, `/blog/`, and `/about/`.

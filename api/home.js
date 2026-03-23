@@ -16,6 +16,7 @@ module.exports = async function handler(_req, res) {
       fetchJson("/api/catalog"),
       fetchJson("/api/counties"),
     ]);
+    const essentials = await fetchJson("/api/essentials");
 
     res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=3600");
     res.status(200).json({
@@ -23,6 +24,7 @@ module.exports = async function handler(_req, res) {
       leaderboards: leaderboards.message,
       catalog: catalog.message,
       counties: counties.message,
+      testimonials: essentials.message.testimonials,
     });
   } catch (error) {
     res.status(500).json({

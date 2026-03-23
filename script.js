@@ -10,6 +10,39 @@ const currencyCompact = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 1,
 });
 
+const legalReplacements = {
+  sihtasutus: "SA",
+  aktsiaselts: "AS",
+  "osaühing": "OÜ",
+  filiaal: "FIL",
+  "füüsilisest isikust ettevõtja": "FIE",
+  mittetulundusühing: "MTÜ",
+  maaparandusühistu: "MPÜ",
+  "tarbijate ühistu": "TÜ",
+  tulundusühistu: "TÜH",
+  koolitusühistu: "KÜ",
+  "ametiühing": "AMETÜ",
+  "usuline ühendus": "UÜ",
+  "ühendus": "ÜÜ",
+  "ühisus": "ÜÜ",
+  "avoin yhtiö": "AVOIG",
+  komanditühing: "KOVAS",
+  "täisühing": "TRAS",
+  "ühisprojekt": "SCE",
+  usaldusühing: "TKR",
+  "euroopa majandushuviühing": "EMÜ",
+  "seadusega moodustatud asutus": "SE",
+};
+
+const legalAbbreviations = new Set([
+  "AMETÜ", "AS", "AVOIG", "EMÜ", "ERAK", "FIE", "FIL", "KOVAS",
+  "KÜ", "MPÜ", "MTÜ", "OÜ", "SA", "SCE", "SE", "TKR", "TRAS",
+  "TÜ", "TÜH", "UÜ", "ÜÜ", "EU",
+]);
+
+const longTokens = new Set(Object.keys(legalReplacements).map((value) => value.toLowerCase()));
+const shortTokens = new Set(Object.values(legalReplacements).map((value) => value.toLowerCase()));
+
 const assetManifest = {
   Icon: "./assets/ios/Icon.svg",
   test2: "./assets/ios/test2.png",
@@ -99,6 +132,133 @@ function localizedText(value) {
   return value.en || value.et || "";
 }
 
+function hasLowercaseLetters(value) {
+  return /[\p{Ll}]/u.test(value);
+}
+
+function titleCaseWord(value) {
+  return String(value)
+    .split("-")
+    .map((part) => {
+      if (!part) return part;
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    })
+    .join("-");
+}
+
+function transformedName(value, includeLegalForm = false) {
+  const original = String(value || "").trim();
+  if (!original) return "";
+
+  const isAllCapsOrNoLowercase = !hasLowercaseLetters(original);
+
+  let updatedName = original;
+  Object.entries(legalReplacements).forEach(([target, replacement]) => {
+    updatedName = updatedName.replace(new RegExp(target, "giu"), replacement);
+  });
+
+  updatedName = updatedName.replace(/[!"#$%&'()*+,./:;<=>?@[\\\]^_`{|}~]/g, " ");
+
+  let words = updatedName
+    .split(/\s+/)
+    .map((word) => word.trim())
+    .filter(Boolean);
+
+  words = words.filter((word) => {
+    const lower = word.toLowerCase();
+    const base = lower.split("-")[0] || lower;
+
+    if (includeLegalForm) {
+      return !longTokens.has(lower) && !longTokens.has(base);
+    }
+
+    return (
+      !longTokens.has(lower) &&
+      !longTokens.has(base) &&
+      !shortTokens.has(lower) &&
+      !shortTokens.has(base)
+    );
+  });
+
+  if (!words.length) return "";
+
+  if (!isAllCapsOrNoLowercase) {
+    return words
+      .map((word) => {
+        const upper = word.toUpperCase();
+        if (legalAbbreviations.has(upper)) {
+          return upper;
+        }
+        if (!hasLowercaseLetters(word)) {
+          if (word.length >= 2 && word.length <= 4) {
+            return upper;
+          }
+          return titleCaseWord(word);
+        }
+        return word;
+      })
+      .join(" ");
+  }
+
+  const nonLegalWords = words;
+  const hasGroup = nonLegalWords.some((word) => word.toLowerCase() === "group");
+  const coreWords = nonLegalWords.filter((word) => word.toLowerCase() !== "group");
+  const treatCoreAsAcronyms =
+    hasGroup && coreWords.length > 0 && coreWords.every((word) => word.length <= 3);
+
+  return words
+    .map((word) => {
+      const lower = word.toLowerCase();
+      const upper = word.toUpperCase();
+
+      if (legalAbbreviations.has(upper)) {
+        return upper;
+      }
+      if (lower === "group") {
+        return "Group";
+      }
+      if (treatCoreAsAcronyms && lower !== "group") {
+        return upper;
+      }
+      return titleCaseWord(lower);
+    })
+    .join(" ");
+}
+
+function setupSectionReveal() {
+  const sections = Array.from(document.querySelectorAll(".page-home main .section"))
+    .filter((section) => section.id !== "hero");
+
+  if (!sections.length) return;
+
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduceMotion || !("IntersectionObserver" in window)) {
+    sections.forEach((section) => section.classList.add("is-visible"));
+    return;
+  }
+
+  sections.forEach((section, index) => {
+    section.classList.add("reveal-on-scroll");
+    section.style.transitionDelay = `${Math.min(index * 40, 160)}ms`;
+  });
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add("is-visible");
+        observer.unobserve(entry.target);
+      });
+    },
+    {
+      threshold: 0.14,
+      rootMargin: "0px 0px -8% 0px",
+    }
+  );
+
+  sections.forEach((section) => observer.observe(section));
+}
+
 function toSlug(value) {
   return String(value || "")
     .toLowerCase()
@@ -107,50 +267,42 @@ function toSlug(value) {
 }
 
 function renderTrending(data) {
-  const tabsRoot = document.getElementById("trending-tabs");
-  const gridRoot = document.getElementById("trending-grid");
-  if (!tabsRoot || !gridRoot) return;
+  const root = document.getElementById("trending-grid");
+  if (!root) return;
 
-  let activeKey = data[0]?.key;
-
-  function paint() {
-    const active = data.find((item) => item.key === activeKey) || data[0];
-
-    tabsRoot.innerHTML = data
-      .map(
-        (board) => `
-          <button class="trending-tab ${board.key === active?.key ? "is-active" : ""}" data-key="${board.key}">
-            ${localizedText(board.title)}
-          </button>
-        `
-      )
-      .join("");
-
-    gridRoot.innerHTML = (active?.items || [])
-      .map(
-        (item) => `
-          <article class="trend-card">
-            <div class="top-meta">
-              <span class="type-chip">${item.type}</span>
-              <span class="value-chip">${formatValue(item.value, item.value_type)}</span>
+  root.innerHTML = (data || [])
+    .map((board, index) => {
+      const items = board.items || [];
+      if (!items.length) return "";
+      const duplicated = [...items, ...items];
+      return `
+        <div class="trending-marquee-row">
+          <div class="trending-row-head">
+            <p class="trending-row-label">${localizedText(board.title)}</p>
+            <p class="trending-row-copy">${localizedText(board.subtitle) || ""}</p>
+          </div>
+          <div class="trending-carousel-wrap">
+            <div class="trending-carousel ${index % 2 === 1 ? "is-reverse" : ""}">
+              ${duplicated
+                .map(
+                  (item) => `
+                    <article class="trending-card-minimal">
+                      <div class="top-meta">
+                        <span class="type-chip">${item.type}</span>
+                        <span class="value-chip">${formatValue(item.value, item.value_type)} views</span>
+                      </div>
+                      <h3 class="trend-name">${transformedName(item.name)}</h3>
+                      <p class="trend-subline">${item.identifier}</p>
+                    </article>
+                  `
+                )
+                .join("")}
             </div>
-            <h3 class="trend-name">${item.name}</h3>
-            <p class="item-subtitle">${localizedText(active.subtitle)}</p>
-            <div class="item-meta">ID ${item.identifier}</div>
-          </article>
-        `
-      )
-      .join("");
-
-    tabsRoot.querySelectorAll("[data-key]").forEach((button) => {
-      button.addEventListener("click", () => {
-        activeKey = button.dataset.key;
-        paint();
-      });
-    });
-  }
-
-  paint();
+          </div>
+        </div>
+      `;
+    })
+    .join("");
 }
 
 function renderLeaderboards(data) {
@@ -170,23 +322,110 @@ function renderLeaderboards(data) {
           </div>
           <ol class="rank-list">
             ${board.items
-              .slice(0, 5)
+              .slice(0, 10)
               .map(
                 (item, index) => `
                   <li>
                     <span class="rank-index">${String(index + 1).padStart(2, "0")}</span>
-                    <span class="rank-name">${item.name}</span>
+                    <span class="rank-name">${transformedName(item.name)}</span>
                     <span class="rank-value">${formatValue(item.value, item.value_type)}</span>
                   </li>
                 `
               )
               .join("")}
           </ol>
-          <div class="item-meta">${board.key.replaceAll("_", " ")}</div>
+          <a class="item-meta" href="/filters/">View all</a>
         </article>
       `
     )
     .join("");
+
+  bindLeaderboardControls();
+}
+
+function bindLeaderboardControls() {
+  const rail = document.getElementById("leaderboards-grid");
+  const prev = document.getElementById("leaderboards-prev");
+  const next = document.getElementById("leaderboards-next");
+  if (!rail || !prev || !next) return;
+
+  let snapTimer = null;
+  let programmaticScrollTimer = null;
+  let isProgrammaticScroll = false;
+
+  const cards = () => Array.from(rail.querySelectorAll(".leaderboard-card"));
+  const snapPoints = () => {
+    const cardList = cards();
+    const maxScrollLeft = Math.max(0, rail.scrollWidth - rail.clientWidth);
+    const points = cardList.map((card) => Math.min(card.offsetLeft, maxScrollLeft));
+    return points.filter((point, index) => index === 0 || Math.abs(point - points[index - 1]) > 2);
+  };
+
+  const nearestSnapIndex = () => {
+    const points = snapPoints();
+    if (!points.length) return 0;
+    const current = rail.scrollLeft;
+    let bestIndex = 0;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    points.forEach((point, index) => {
+      const distance = Math.abs(point - current);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestIndex = index;
+      }
+    });
+    return bestIndex;
+  };
+
+  const nearestIndex = () => {
+    const cardList = cards();
+    if (!cardList.length) return 0;
+    const maxScrollLeft = rail.scrollWidth - rail.clientWidth;
+    if (maxScrollLeft <= 0) return 0;
+    if (rail.scrollLeft >= maxScrollLeft - 8) return cardList.length - 1;
+    const current = rail.scrollLeft;
+    let bestIndex = 0;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    cardList.forEach((card, index) => {
+      const target = Math.min(card.offsetLeft, maxScrollLeft);
+      const distance = Math.abs(target - current);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestIndex = index;
+      }
+    });
+    return bestIndex;
+  };
+
+  const snapToPoint = (pointIndex, behavior = "smooth") => {
+    const points = snapPoints();
+    if (!points.length) return;
+    const safeIndex = Math.max(0, Math.min(pointIndex, points.length - 1));
+    const target = points[safeIndex];
+    if (behavior === "smooth") {
+      isProgrammaticScroll = true;
+      window.clearTimeout(programmaticScrollTimer);
+      programmaticScrollTimer = window.setTimeout(() => {
+        isProgrammaticScroll = false;
+      }, 420);
+    }
+    rail.scrollTo({ left: target, behavior });
+  };
+
+  const queueSnap = () => {
+    window.clearTimeout(snapTimer);
+    snapTimer = window.setTimeout(() => {
+      snapToPoint(nearestSnapIndex());
+    }, 120);
+  };
+
+  prev.onclick = () => snapToPoint(nearestSnapIndex() - 1);
+  next.onclick = () => snapToPoint(nearestSnapIndex() + 1);
+
+  rail.onscroll = () => {
+    if (isProgrammaticScroll) return;
+    queueSnap();
+  };
 }
 
 function renderCounties(data) {
@@ -218,6 +457,23 @@ function renderCatalogBoard(board, rootId) {
   const root = document.getElementById(rootId);
   if (!root || !board) return;
 
+  const titleId = rootId === "parties-grid" ? "parties-title" : rootId === "public-grid" ? "public-title" : null;
+  const subtitleId =
+    rootId === "parties-grid" ? "parties-subtitle" : rootId === "public-grid" ? "public-subtitle" : null;
+
+  const heading = titleId ? document.getElementById(titleId) : null;
+  const subtitle = subtitleId ? document.getElementById(subtitleId) : null;
+
+  if (heading) {
+    heading.textContent = localizedText(board.title) || heading.textContent;
+  }
+
+  if (subtitle) {
+    const subtitleText = localizedText(board.subtitle);
+    subtitle.textContent = subtitleText;
+    subtitle.hidden = !subtitleText;
+  }
+
   root.innerHTML = board.items
     .map((item) => {
       const meta = item.metaData || {};
@@ -230,17 +486,16 @@ function renderCatalogBoard(board, rootId) {
           <div class="catalog-top">
             <img class="catalog-logo" src="${logo}" alt="${item.name} logo" loading="lazy" onerror="this.onerror=null;this.src='${assetSvgPath(meta.image_ref)}'" />
             <div class="catalog-copy">
-              <h3 class="catalog-name">${item.name}</h3>
+              <h3 class="catalog-name">${transformedName(item.name)}</h3>
             </div>
           </div>
           <div>
             <div class="catalog-metric">
+              <div class="catalog-value">${formatValue(item.value, item.value_type)}</div>
               <p class="item-subtitle catalog-label">
                 ${localizedText(item.value_description) || "Member count"}
               </p>
-              <div class="catalog-value">${formatValue(item.value, item.value_type)}</div>
             </div>
-            <div class="item-meta" style="color:${theme.chipText}; border-color:${theme.chipBorder}; background:${theme.chipBg}">Registry code ${item.registry_code}</div>
           </div>
         </article>
       `;
@@ -248,10 +503,44 @@ function renderCatalogBoard(board, rootId) {
     .join("");
 }
 
-async function loadHomeData() {
-  const status = document.getElementById("home-status");
-  if (!status) return;
+function renderTestimonials(data) {
+  const root = document.getElementById("testimonials-grid");
+  if (!root) return;
 
+  const items = data || [];
+  if (!items.length) {
+    root.innerHTML = "";
+    return;
+  }
+
+  const duplicated = [...items, ...items];
+
+  root.innerHTML = `
+    <div class="testimonial-carousel-wrap">
+      <div class="testimonial-carousel">
+      ${duplicated
+        .map(
+          (item) => `
+          <article class="testimonial-slide">
+            <div class="testimonial-stars">${"★".repeat(item.rating)}</div>
+            <p class="testimonial-quote">“${item.review}”</p>
+            <div class="testimonial-meta">
+              <div class="testimonial-avatar">${item.name.charAt(0)}</div>
+              <div class="testimonial-person">
+                <p class="testimonial-name">${item.name}</p>
+                <p class="testimonial-role">${item.position} · ${item.company}</p>
+              </div>
+            </div>
+          </article>
+        `
+        )
+        .join("")}
+      </div>
+    </div>
+  `;
+}
+
+async function loadHomeData() {
   try {
     let payload = null;
     const sources = ["/api/home", "./data/home.json"];
@@ -278,21 +567,17 @@ async function loadHomeData() {
       (payload.catalog || []).find((board) => board.key === "political_parties"),
       "parties-grid"
     );
+    renderTestimonials(payload.testimonials || []);
     renderCatalogBoard(
       (payload.catalog || []).find((board) => board.key === "publicly_traded_companies"),
       "public-grid"
     );
-
-    status.textContent =
-      "Home data loaded from the same backend feeds the iOS app uses. Local preview may use a generated snapshot fallback.";
   } catch (error) {
-    status.textContent =
-      "Home data could not be loaded in this environment. Check /api/home or regenerate ./data/home.json.";
-    status.classList.add("is-error");
     console.error(error);
   }
 }
 
 if (document.body.classList.contains("page-home")) {
+  setupSectionReveal();
   loadHomeData();
 }

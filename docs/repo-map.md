@@ -22,6 +22,9 @@ This repository now contains a static landing-page implementation plus the longe
 - `blog/index.html`
   Dedicated blog page entrypoint for editorial and product-writing rollout.
 
+- `about/index.html`
+  Dedicated about page entrypoint for company positioning, product framing, and brand context.
+
 - `assets/ios/**`
   Static asset bundle copied from the iOS asset catalog for logos, county shapes, and brand imagery used by the web pages.
 
