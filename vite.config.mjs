@@ -1,4 +1,5 @@
 import { defineConfig } from "vite";
+import { resolve } from "node:path";
 
 const BASE_URL = "https://leadlistscraper-524b3d937ddd.herokuapp.com";
 
@@ -92,6 +93,17 @@ function apiRoutesPlugin() {
 
 export default defineConfig({
   plugins: [apiRoutesPlugin()],
+  build: {
+    rollupOptions: {
+      input: {
+        main: resolve(process.cwd(), "index.html"),
+        about: resolve(process.cwd(), "about/index.html"),
+        blog: resolve(process.cwd(), "blog/index.html"),
+        filters: resolve(process.cwd(), "filters/index.html"),
+        builder: resolve(process.cwd(), "builder/index.html"),
+      },
+    },
+  },
   server: {
     port: 4173,
   },

@@ -543,7 +543,7 @@ function renderTestimonials(data) {
 async function loadHomeData() {
   try {
     let payload = null;
-    const sources = ["/api/home", "./data/home.json"];
+    const sources = ["/api/home", "/data/home.json", "./data/home.json"];
 
     for (const source of sources) {
       try {
