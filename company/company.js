@@ -1,5 +1,9 @@
 import "@phosphor-icons/web/fill";
 
+const EMAIL_ICON_URL = new URL("../assets/ios/email.svg", import.meta.url).href;
+const PHONE_ICON_URL = new URL("../assets/ios/phone.svg", import.meta.url).href;
+const REGISTER_ICON_URL = new URL("../assets/ios/rik.png", import.meta.url).href;
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -319,11 +323,11 @@ function floatingAction({ label, href, icon, external = false }) {
   if (!textOrNull(href)) return "";
   const iconMarkup =
     icon === "register"
-      ? '<img src="/assets/ios/rik.png" alt="" />'
+      ? `<img src="${escapeHtml(REGISTER_ICON_URL)}" alt="" />`
       : icon === "email"
-        ? '<img src="/assets/ios/email.svg" alt="" />'
+        ? `<img src="${escapeHtml(EMAIL_ICON_URL)}" alt="" />`
         : icon === "phone"
-          ? '<img src="/assets/ios/phone.svg" alt="" />'
+          ? `<img src="${escapeHtml(PHONE_ICON_URL)}" alt="" />`
           : '<i class="ph-fill ph-globe-simple"></i>';
 
   return `
