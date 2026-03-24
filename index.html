@@ -27,7 +27,7 @@
         rel="stylesheet"
       />
     </noscript>
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=__ASSET_VERSION__" />
   </head>
   <body class="page-home">
     <div class="site-shell">
@@ -86,19 +86,21 @@
             </p>
           </div>
           <div class="leaderboard-rail-shell">
-            <button class="rail-arrow rail-arrow-prev" id="leaderboards-prev" type="button" aria-label="Scroll leaderboards left">
-              <svg viewBox="0 0 20 20" aria-hidden="true">
-                <path d="M11.75 4.5 6.25 10l5.5 5.5" />
-              </svg>
-            </button>
             <div class="leaderboard-viewport">
               <div class="leaderboard-grid" id="leaderboards-grid"></div>
             </div>
-            <button class="rail-arrow rail-arrow-next" id="leaderboards-next" type="button" aria-label="Scroll leaderboards right">
-              <svg viewBox="0 0 20 20" aria-hidden="true">
-                <path d="m8.25 4.5 5.5 5.5-5.5 5.5" />
-              </svg>
-            </button>
+            <div class="leaderboard-controls">
+              <button class="rail-arrow rail-arrow-prev" id="leaderboards-prev" type="button" aria-label="Scroll leaderboards left">
+                <svg viewBox="0 0 20 20" aria-hidden="true">
+                  <path d="M11.75 4.5 6.25 10l5.5 5.5" />
+                </svg>
+              </button>
+              <button class="rail-arrow rail-arrow-next" id="leaderboards-next" type="button" aria-label="Scroll leaderboards right">
+                <svg viewBox="0 0 20 20" aria-hidden="true">
+                  <path d="m8.25 4.5 5.5 5.5-5.5 5.5" />
+                </svg>
+              </button>
+            </div>
           </div>
         </section>
 
@@ -202,6 +204,6 @@
       </footer>
     </div>
 
-    <script type="module" src="./script.js"></script>
+    <script type="module" src="./script.js?v=__ASSET_VERSION__"></script>
   </body>
 </html>

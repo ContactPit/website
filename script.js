@@ -1,3 +1,5 @@
+import { getOrFetchSessionCache } from "./shared/session-bootstrap-cache.js";
+
 const numberFormatter = new Intl.NumberFormat("en-US");
 const compactNumber = new Intl.NumberFormat("en-US", {
   notation: "compact",
@@ -47,6 +49,10 @@ const assetManifest = {
   Icon: "./assets/ios/Icon.svg",
   test2: "./assets/ios/test2.png",
 };
+
+const HOME_CACHE_KEY = "home-bootstrap";
+const FILTERS_CACHE_KEY = "filters-bootstrap";
+const SESSION_BOOTSTRAP_TTL_MS = 30 * 60 * 1000;
 
 function assetPath(ref) {
   if (!ref) return "";
@@ -223,40 +229,6 @@ function transformedName(value, includeLegalForm = false) {
       return titleCaseWord(lower);
     })
     .join(" ");
-}
-
-function setupSectionReveal() {
-  const sections = Array.from(document.querySelectorAll(".page-home main .section"))
-    .filter((section) => section.id !== "hero");
-
-  if (!sections.length) return;
-
-  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (reduceMotion || !("IntersectionObserver" in window)) {
-    sections.forEach((section) => section.classList.add("is-visible"));
-    return;
-  }
-
-  sections.forEach((section, index) => {
-    section.classList.add("reveal-on-scroll");
-    section.style.transitionDelay = `${Math.min(index * 40, 160)}ms`;
-  });
-
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        entry.target.classList.add("is-visible");
-        observer.unobserve(entry.target);
-      });
-    },
-    {
-      threshold: 0.14,
-      rootMargin: "0px 0px -8% 0px",
-    }
-  );
-
-  sections.forEach((section) => observer.observe(section));
 }
 
 function toSlug(value) {
@@ -542,23 +514,11 @@ function renderTestimonials(data) {
 
 async function loadHomeData() {
   try {
-    let payload = null;
-    const sources = ["/api/home", "/data/home.json", "./data/home.json"];
-
-    for (const source of sources) {
-      try {
-        const response = await fetch(source);
-        if (!response.ok) continue;
-        payload = await response.json();
-        if (payload) break;
-      } catch (_error) {
-        continue;
-      }
-    }
-
-    if (!payload) {
-      throw new Error("No available home data source");
-    }
+    const payload = await getOrFetchSessionCache(
+      HOME_CACHE_KEY,
+      SESSION_BOOTSTRAP_TTL_MS,
+      fetchHomePayload
+    );
 
     renderTrending(payload.trending || []);
     renderLeaderboards(payload.leaderboards || []);
@@ -577,9 +537,46 @@ async function loadHomeData() {
   }
 }
 
+async function fetchHomePayload() {
+  let payload = null;
+  const sources = ["/api/home", "/data/home.json", "./data/home.json"];
+
+  for (const source of sources) {
+    try {
+      const response = await fetch(source);
+      if (!response.ok) continue;
+      payload = await response.json();
+      if (payload) break;
+    } catch (_error) {
+      continue;
+    }
+  }
+
+  if (!payload) {
+    throw new Error("No available home data source");
+  }
+
+  return payload;
+}
+
+async function prefetchFiltersBootstrap() {
+  try {
+    await getOrFetchSessionCache(FILTERS_CACHE_KEY, SESSION_BOOTSTRAP_TTL_MS, async () => {
+      const response = await fetch("/api/filters");
+      if (!response.ok) {
+        throw new Error(`Failed to load filters data: ${response.status}`);
+      }
+      return response.json();
+    });
+  } catch (error) {
+    console.error(error);
+  }
+}
+
 function scheduleHomeDataLoad() {
   const run = () => {
     void loadHomeData();
+    void prefetchFiltersBootstrap();
   };
 
   if ("requestIdleCallback" in window) {
@@ -591,6 +588,5 @@ function scheduleHomeDataLoad() {
 }
 
 if (document.body.classList.contains("page-home")) {
-  setupSectionReveal();
   scheduleHomeDataLoad();
 }

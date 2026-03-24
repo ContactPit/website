@@ -27,7 +27,7 @@
         rel="stylesheet"
       />
     </noscript>
-    <link rel="stylesheet" href="../styles.css?v=20260323-25" />
+    <link rel="stylesheet" href="../styles.css?v=__ASSET_VERSION__" />
   </head>
   <body class="page-filters">
     <div class="site-shell filters-shell">
@@ -68,18 +68,19 @@
       <main>
         <section class="filters-dashboard section-tight" id="filters-hero-section">
           <aside class="filters-sidebar">
-            <section class="filters-summary-card" id="count-card" aria-live="polite">
-              <div class="filters-summary-block">
-                <p class="filters-summary-label">Companies</p>
-                <div class="filters-summary-value" id="companies-count-value">...</div>
-                <p class="filters-summary-meta" id="count-status-text" hidden>
-                  Loading filter configuration and legends.
-                </p>
-              </div>
-              <div class="filters-summary-block">
-                <a class="primary-link filters-summary-order" href="/filters/">Order list</a>
-              </div>
-            </section>
+            <div class="filters-sidebar-top">
+              <section class="filters-summary-card" id="count-card" aria-live="polite">
+                <div class="filters-summary-block">
+                  <p class="filters-summary-label">Companies</p>
+                  <div class="filters-summary-value" id="companies-count-value">...</div>
+                  <p class="filters-summary-meta" id="count-status-text" hidden>
+                    Loading filter configuration and legends.
+                  </p>
+                </div>
+              </section>
+
+              <a class="primary-link filters-summary-order" href="/filters/">Order list</a>
+            </div>
 
             <section class="filters-applied-card">
               <div class="filters-summary-block filters-summary-block-actions">
@@ -480,6 +481,6 @@
         </section>
       </main>
     </div>
-    <script type="module" src="./filters.js"></script>
+    <script type="module" src="./filters.js?v=__ASSET_VERSION__"></script>
   </body>
 </html>

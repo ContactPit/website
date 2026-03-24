@@ -2,6 +2,11 @@ import { defineConfig } from "vite";
 import { resolve } from "node:path";
 
 const BASE_URL = "https://leadlistscraper-524b3d937ddd.herokuapp.com";
+const NO_STORE_HEADERS = {
+  "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+  Pragma: "no-cache",
+  Expires: "0",
+};
 
 async function upstreamJson(path, init) {
   const response = await fetch(`${BASE_URL}${path}`, init);
@@ -91,8 +96,17 @@ function apiRoutesPlugin() {
   };
 }
 
+function assetVersionPlugin() {
+  return {
+    name: "contactpit-asset-version",
+    transformIndexHtml(html) {
+      return html.replaceAll("__ASSET_VERSION__", Date.now().toString());
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [apiRoutesPlugin()],
+  plugins: [apiRoutesPlugin(), assetVersionPlugin()],
   build: {
     rollupOptions: {
       input: {
@@ -105,9 +119,11 @@ export default defineConfig({
     },
   },
   server: {
+    headers: NO_STORE_HEADERS,
     port: 4173,
   },
   preview: {
+    headers: NO_STORE_HEADERS,
     port: 4173,
   },
 });

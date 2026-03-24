@@ -1,7 +1,11 @@
+import { getOrFetchSessionCache } from "../shared/session-bootstrap-cache.js";
+
 const API_ENDPOINT = "/api/filters";
 const API_BASE_URL = "https://leadlistscraper-524b3d937ddd.herokuapp.com";
 const COUNT_DEBOUNCE_MS = 450;
 const MAX_FILTER_RESULTS = 120;
+const FILTERS_CACHE_KEY = "filters-bootstrap";
+const SESSION_BOOTSTRAP_TTL_MS = 30 * 60 * 1000;
 const LEGAL_FORMS = [
   "AMETÜ", "AS", "AVOIG", "EMÜ", "ERAK", "FIE", "FIL", "KOVAS",
   "KÜ", "MPÜ", "MTÜ", "OÜ", "SA", "SCE", "SE", "TKR", "TRAS",
@@ -690,24 +694,26 @@ function setupSectionNavigation() {
 }
 
 async function fetchFiltersBootstrap() {
-  const localResponse = await fetch(API_ENDPOINT).catch(() => null);
-  if (localResponse?.ok) {
-    return localResponse.json();
-  }
+  return getOrFetchSessionCache(FILTERS_CACHE_KEY, SESSION_BOOTSTRAP_TTL_MS, async () => {
+    const localResponse = await fetch(API_ENDPOINT).catch(() => null);
+    if (localResponse?.ok) {
+      return localResponse.json();
+    }
 
-  if (localResponse && localResponse.status !== 404) {
-    throw new Error(`Failed to load filters data: ${localResponse.status}`);
-  }
+    if (localResponse && localResponse.status !== 404) {
+      throw new Error(`Failed to load filters data: ${localResponse.status}`);
+    }
 
-  const [filtersConfiguration, legends] = await Promise.all([
-    fetchJson(`${API_BASE_URL}/api/filters-configuration`),
-    fetchJson(`${API_BASE_URL}/api/legends`),
-  ]);
+    const [filtersConfiguration, legends] = await Promise.all([
+      fetchJson(`${API_BASE_URL}/api/filters-configuration`),
+      fetchJson(`${API_BASE_URL}/api/legends`),
+    ]);
 
-  return {
-    filtersConfiguration: filtersConfiguration.message || [],
-    legends: legends.message || {},
-  };
+    return {
+      filtersConfiguration: filtersConfiguration.message || [],
+      legends: legends.message || {},
+    };
+  });
 }
 
 async function postCountPayload(payload, signal) {
