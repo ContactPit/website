@@ -11,10 +11,19 @@ This repository now contains a static landing-page implementation plus the longe
   Shared visual system for the current web pages, including the light-mode ContactPit palette translated into a web-first layout language.
 
 - `script.js`
-  Current home-page interaction layer. Loads live home data and renders the requested sections from shared backend feeds.
+  Current home-page interaction layer. Loads live home data and powers the debounced unified search dropdown that routes to company and person detail placeholders.
 
 - `api/home.js`
   Same-origin serverless aggregator for the iOS home endpoints: trending, leaderboards, catalog, and counties.
+
+- `api/search.js`
+  Same-origin serverless search proxy for the homepage unified search input.
+
+- `api/company.js`
+  Same-origin serverless company-detail proxy for slug-based placeholder company pages.
+
+- `api/person.js`
+  Same-origin serverless person-detail proxy for slug-based placeholder person pages.
 
 - `filters/index.html`
   Dedicated filters page entrypoint for the live web leadlist workflow.
@@ -30,6 +39,18 @@ This repository now contains a static landing-page implementation plus the longe
 
 - `about/index.html`
   Dedicated about page entrypoint for company positioning, product framing, and brand context.
+
+- `company/index.html`
+  Static route shell for `/company/:slug`, rendering a minimal company placeholder from the slug-based API fetch.
+
+- `company/company.js`
+  Client-side controller for the company placeholder route.
+
+- `person/index.html`
+  Static route shell for `/person/:slug`, rendering a minimal person placeholder from the slug-based API fetch.
+
+- `person/person.js`
+  Client-side controller for the person placeholder route.
 
 - `assets/ios/**`
   Static asset bundle copied from the iOS asset catalog for logos, county shapes, brand imagery, and optimized responsive page assets such as the about-page founder portrait variants.

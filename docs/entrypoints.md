@@ -3,7 +3,7 @@
 ## Application Startup
 
 - `vite.config.mjs`
-  Local development entrypoint. Serves the multi-page site and exposes local `/api/home` and `/api/filters` routes that proxy upstream backend data for browser testing.
+  Local development entrypoint. Serves the multi-page site and exposes local `/api/home`, `/api/filters`, `/api/search`, `/api/company`, and `/api/person` routes that proxy upstream backend data for browser testing.
 
 - `src/main.*` or framework bootstrap entry
   Primary runtime entrypoint. Mounts the app, installs providers, and starts client-side services.
@@ -48,4 +48,4 @@
 
 ## Current State
 
-- Static page entrypoints currently include `/`, `/filters/`, `/blog/`, and `/about/`.
+- Static page entrypoints currently include `/`, `/filters/`, `/blog/`, `/about/`, `/company/:slug`, and `/person/:slug`.

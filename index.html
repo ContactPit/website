@@ -55,15 +55,32 @@
               Find companies, people, registry codes, and market signals through one clean
               workflow built for research, targeting, and outbound action.
             </p>
-            <form class="hero-search-form hero-search-form-centered search-shell" action="/filters/" method="get">
+            <form
+              class="hero-search-form hero-search-form-centered search-shell"
+              id="hero-search-form"
+              action="/filters/"
+              method="get"
+              autocomplete="off"
+            >
               <label class="hero-search-label" for="hero-search-input">Search</label>
-              <input
-                id="hero-search-input"
-                class="hero-search-input"
-                type="search"
-                name="q"
-                placeholder="Search companies, people, registry codes..."
-              />
+              <div class="hero-search-field-row">
+                <input
+                  id="hero-search-input"
+                  class="hero-search-input"
+                  type="search"
+                  name="q"
+                  placeholder="Search companies, people, registry codes..."
+                />
+              </div>
+              <div class="hero-search-status" id="hero-search-status" aria-live="polite">
+              </div>
+              <div
+                class="hero-search-results"
+                id="hero-search-results"
+                role="listbox"
+                aria-label="Search results"
+                hidden
+              ></div>
             </form>
           </div>
         </section>

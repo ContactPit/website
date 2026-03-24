@@ -69,6 +69,18 @@ const assetManifest = {
 const HOME_CACHE_KEY = "home-bootstrap";
 const FILTERS_CACHE_KEY = "filters-bootstrap";
 const SESSION_BOOTSTRAP_TTL_MS = 30 * 60 * 1000;
+const SEARCH_DEBOUNCE_MS = 666;
+
+const searchState = {
+  debounceTimer: null,
+  activeController: null,
+  requestToken: 0,
+  currentQuery: "",
+  results: [],
+  status: "idle",
+  errorMessage: "",
+  pendingSlug: "",
+};
 
 function assetPath(ref) {
   if (!ref) return "";
@@ -253,6 +265,245 @@ function toSlug(value) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function searchTypeLabel(type) {
+  return type === "company" ? "Company" : "Person";
+}
+
+function searchMetaLabel(item) {
+  return item.id || "Unknown";
+}
+
+function searchIconSvg(type) {
+  if (type === "company") {
+    return `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4.5 20.5h15" />
+        <path d="M6.5 20.5v-9h11v9" />
+        <path d="M9 7.5h6v4h-6z" />
+        <path d="M8 11.5V4.5h8v7" />
+      </svg>
+    `;
+  }
+
+  return `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="8" r="3.25" />
+      <path d="M6.5 19.5c1.2-3.1 3.05-4.65 5.5-4.65s4.3 1.55 5.5 4.65" />
+    </svg>
+  `;
+}
+
+function renderSearchUI() {
+  const form = document.getElementById("hero-search-form");
+  const status = document.getElementById("hero-search-status");
+  const results = document.getElementById("hero-search-results");
+  const input = document.getElementById("hero-search-input");
+
+  if (!form || !status || !results || !input) return;
+
+  status.className = "hero-search-status";
+  status.textContent = "";
+  results.hidden = true;
+  results.innerHTML = "";
+
+  const trimmedQuery = input.value.trim();
+  const hasEnoughInput = trimmedQuery.length >= 2;
+
+  if (searchState.status === "loading") {
+    status.textContent = `Searching for “${trimmedQuery}”…`;
+    status.classList.add("is-loading");
+  } else if (searchState.status === "routing") {
+    status.textContent = "Opening selection…";
+    status.classList.add("is-routing");
+  } else if (searchState.status === "error") {
+    status.textContent = searchState.errorMessage || "Search failed. Please try again.";
+    status.classList.add("is-error");
+  }
+
+  if (!hasEnoughInput && searchState.status !== "routing") {
+    return;
+  }
+
+  if (searchState.status === "error") {
+    results.hidden = false;
+    results.innerHTML = '<div class="hero-search-error">Search is temporarily unavailable. Please retry.</div>';
+    return;
+  }
+
+  if (searchState.status === "empty") {
+    results.hidden = false;
+    results.innerHTML = '<div class="hero-search-empty">No matches yet. Try a broader company, person, or code search.</div>';
+    return;
+  }
+
+  if (!searchState.results.length) {
+    return;
+  }
+
+  results.hidden = false;
+  results.innerHTML = searchState.results
+    .map((item) => {
+      const isRouting = searchState.pendingSlug === item.slug;
+      const name = item.type === "company" ? transformedName(item.name) : item.name;
+      return `
+        <button
+          class="hero-search-result ${isRouting ? "is-routing" : ""}"
+          type="button"
+          role="option"
+          data-search-slug="${escapeHtml(item.slug)}"
+          data-search-type="${escapeHtml(item.type)}"
+          data-search-name="${escapeHtml(item.name)}"
+          data-search-id="${escapeHtml(item.id)}"
+          ${searchState.status === "routing" ? "disabled" : ""}
+        >
+          <span class="hero-search-result-icon" aria-hidden="true">${searchIconSvg(item.type)}</span>
+          <span class="hero-search-result-copy">
+            <span class="hero-search-result-title">${escapeHtml(name)}</span>
+            <span class="hero-search-result-meta">${escapeHtml(searchMetaLabel(item))}</span>
+          </span>
+          <span class="hero-search-result-side" aria-hidden="true"></span>
+        </button>
+      `;
+    })
+    .join("");
+}
+
+function clearSearchResults() {
+  searchState.results = [];
+  searchState.status = "idle";
+  searchState.errorMessage = "";
+  searchState.pendingSlug = "";
+  renderSearchUI();
+}
+
+async function performUnifiedSearch(query, token) {
+  if (searchState.activeController) {
+    searchState.activeController.abort();
+  }
+
+  const controller = new AbortController();
+  searchState.activeController = controller;
+  searchState.status = "loading";
+  searchState.errorMessage = "";
+  renderSearchUI();
+
+  try {
+    const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {
+      signal: controller.signal,
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Search failed with status ${response.status}`);
+    }
+
+    const payload = await response.json();
+
+    if (token !== searchState.requestToken) return;
+
+    searchState.results = Array.isArray(payload.message)
+      ? [...payload.message].sort((left, right) => Number(right.score || 0) - Number(left.score || 0))
+      : [];
+    searchState.status = searchState.results.length ? "done" : "empty";
+    searchState.errorMessage = "";
+    renderSearchUI();
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      return;
+    }
+    if (token !== searchState.requestToken) return;
+    searchState.results = [];
+    searchState.status = "error";
+    searchState.errorMessage = error instanceof Error ? error.message : "Search failed.";
+    renderSearchUI();
+  } finally {
+    if (searchState.activeController === controller) {
+      searchState.activeController = null;
+    }
+  }
+}
+
+function scheduleUnifiedSearch(value) {
+  const query = value.trim();
+  searchState.currentQuery = query;
+  searchState.errorMessage = "";
+  searchState.pendingSlug = "";
+  window.clearTimeout(searchState.debounceTimer);
+
+  if (query.length < 2) {
+    searchState.requestToken += 1;
+    if (searchState.activeController) {
+      searchState.activeController.abort();
+      searchState.activeController = null;
+    }
+    clearSearchResults();
+    return;
+  }
+
+  searchState.status = "idle";
+  renderSearchUI();
+
+  const token = searchState.requestToken + 1;
+  searchState.requestToken = token;
+  searchState.debounceTimer = window.setTimeout(() => {
+    void performUnifiedSearch(query, token);
+  }, SEARCH_DEBOUNCE_MS);
+}
+
+function routeFromSearchResult(result) {
+  if (!result?.slug || !result?.type || searchState.status === "routing") {
+    return;
+  }
+
+  searchState.status = "routing";
+  searchState.pendingSlug = result.slug;
+  renderSearchUI();
+
+  const basePath = result.type === "company" ? "/company/" : "/person/";
+  window.location.href = `${basePath}${encodeURIComponent(result.slug)}`;
+}
+
+function initializeHomeSearch() {
+  const form = document.getElementById("hero-search-form");
+  const input = document.getElementById("hero-search-input");
+  const results = document.getElementById("hero-search-results");
+
+  if (!form || !input || !results) return;
+
+  renderSearchUI();
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+  });
+
+  input.addEventListener("input", () => {
+    scheduleUnifiedSearch(input.value);
+  });
+
+  results.addEventListener("click", (event) => {
+    const trigger = event.target.closest("[data-search-slug]");
+    if (!trigger) return;
+
+    routeFromSearchResult({
+      slug: trigger.getAttribute("data-search-slug") || "",
+      type: trigger.getAttribute("data-search-type") || "",
+      name: trigger.getAttribute("data-search-name") || "",
+      id: trigger.getAttribute("data-search-id") || "",
+    });
+  });
 }
 
 function renderTrending(data) {
@@ -605,5 +856,6 @@ function scheduleHomeDataLoad() {
 }
 
 if (document.body.classList.contains("page-home")) {
+  initializeHomeSearch();
   scheduleHomeDataLoad();
 }

@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import { resolve } from "node:path";
+import { readFile } from "node:fs/promises";
 
 const BASE_URL = "https://leadlistscraper-524b3d937ddd.herokuapp.com";
 const NO_STORE_HEADERS = {
@@ -38,6 +39,26 @@ function apiRoutesPlugin() {
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
         try {
+          const pathname = (req.url || "").split("?")[0];
+
+          if (req.method === "GET" && /^\/company\/[^/.]+\/?$/.test(pathname)) {
+            const template = await readFile(resolve(process.cwd(), "company/index.html"), "utf8");
+            const html = await server.transformIndexHtml(pathname, template, req.originalUrl);
+            res.statusCode = 200;
+            res.setHeader("Content-Type", "text/html; charset=utf-8");
+            res.end(html);
+            return;
+          }
+
+          if (req.method === "GET" && /^\/person\/[^/.]+\/?$/.test(pathname)) {
+            const template = await readFile(resolve(process.cwd(), "person/index.html"), "utf8");
+            const html = await server.transformIndexHtml(pathname, template, req.originalUrl);
+            res.statusCode = 200;
+            res.setHeader("Content-Type", "text/html; charset=utf-8");
+            res.end(html);
+            return;
+          }
+
           if (req.method === "GET" && req.url === "/api/home") {
             const [trending, leaderboards, catalog, counties, essentials] = await Promise.all([
               upstreamJson("/api/trending"),
@@ -84,6 +105,40 @@ function apiRoutesPlugin() {
             return;
           }
 
+          if (req.method === "GET" && req.url?.startsWith("/api/search")) {
+            const requestUrl = new URL(req.url, "http://localhost");
+            const query = requestUrl.searchParams.get("q") || "";
+            const payload = await upstreamJson(`/api/search?q=${encodeURIComponent(query)}`);
+            sendJson(res, 200, payload);
+            return;
+          }
+
+          if (req.method === "GET" && req.url?.startsWith("/api/company")) {
+            const requestUrl = new URL(req.url, "http://localhost");
+            const slug = requestUrl.searchParams.get("slug") || "";
+            if (!slug) {
+              sendJson(res, 400, { error: "Missing slug query parameter" });
+              return;
+            }
+
+            const payload = await upstreamJson(`/api/company/full?slug=${encodeURIComponent(slug)}`);
+            sendJson(res, 200, payload);
+            return;
+          }
+
+          if (req.method === "GET" && req.url?.startsWith("/api/person")) {
+            const requestUrl = new URL(req.url, "http://localhost");
+            const slug = requestUrl.searchParams.get("slug") || "";
+            if (!slug) {
+              sendJson(res, 400, { error: "Missing slug query parameter" });
+              return;
+            }
+
+            const payload = await upstreamJson(`/api/person?slug=${encodeURIComponent(slug)}`);
+            sendJson(res, 200, payload);
+            return;
+          }
+
           next();
         } catch (error) {
           sendJson(res, 500, {
@@ -114,6 +169,8 @@ export default defineConfig({
         about: resolve(process.cwd(), "about/index.html"),
         blog: resolve(process.cwd(), "blog/index.html"),
         filters: resolve(process.cwd(), "filters/index.html"),
+        company: resolve(process.cwd(), "company/index.html"),
+        person: resolve(process.cwd(), "person/index.html"),
         builder: resolve(process.cwd(), "builder/index.html"),
       },
     },

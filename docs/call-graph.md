@@ -28,13 +28,15 @@ login or signup action
 
 ## 4) Search to Detail Flow
 
-search page or header search input
-→ query debounce or submit
-→ API client sends search request
-→ results render
+home-page hero search input
+→ user types at least 2 characters
+→ client debounces for 666 ms
+→ same-origin `/api/search?q=...` proxy calls upstream search API
+→ ranked company/person results render in dropdown
 → user selects company or person
-→ route transition to detail page
-→ detail page fetches and renders entity data
+→ browser routes to `/company/:slug` or `/person/:slug`
+→ detail shell calls same-origin `/api/company?slug=...` or `/api/person?slug=...`
+→ placeholder page renders fetched entity name and identifier
 
 ## 5) Lead Capture / Order Request Flow
 
@@ -61,4 +63,5 @@ route request
 ## Current State
 
 - The repository already implements static runtime flows for the public routes `/`, `/filters/`, `/blog/`, and `/about/`.
+- The repository already implements live search-to-detail routing for `/company/:slug` and `/person/:slug` placeholder pages in addition to the public routes `/`, `/filters/`, `/blog/`, and `/about/`.
 - The flows above still describe the broader intended client behavior as the site grows beyond the current static implementation.

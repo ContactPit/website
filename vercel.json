@@ -7,6 +7,12 @@
     { "source": "/blog/", "destination": "/blog/index.html" },
     { "source": "/filters", "destination": "/filters/index.html" },
     { "source": "/filters/", "destination": "/filters/index.html" },
+    { "source": "/company", "destination": "/company/index.html" },
+    { "source": "/company/", "destination": "/company/index.html" },
+    { "source": "/company/(.*)", "destination": "/company/index.html" },
+    { "source": "/person", "destination": "/person/index.html" },
+    { "source": "/person/", "destination": "/person/index.html" },
+    { "source": "/person/(.*)", "destination": "/person/index.html" },
     { "source": "/builder", "destination": "/builder/index.html" },
     { "source": "/builder/", "destination": "/builder/index.html" }
   ]
