@@ -226,6 +226,11 @@ function googleMapsEmbedUrl(coordinates, address) {
 
 function iconSvg(name) {
   const icons = {
+    register: `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M5 3.75A2.25 2.25 0 0 0 2.75 6v12A2.25 2.25 0 0 0 5 20.25h14A2.25 2.25 0 0 0 21.25 18V9.31a2.25 2.25 0 0 0-.66-1.59L17.53 4.66A2.25 2.25 0 0 0 15.94 4H5Zm10.25 1.9 4.1 4.1h-2.6A1.5 1.5 0 0 1 15.25 8.25v-2.6ZM7.5 11h9a.75.75 0 0 1 0 1.5h-9a.75.75 0 0 1 0-1.5Zm0 3.5h9a.75.75 0 0 1 0 1.5h-9a.75.75 0 0 1 0-1.5Z" fill="currentColor"/>
+      </svg>
+    `,
     email: `
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M4.5 6A2.5 2.5 0 0 0 2 8.5v7A2.5 2.5 0 0 0 4.5 18h15a2.5 2.5 0 0 0 2.5-2.5v-7A2.5 2.5 0 0 0 19.5 6h-15Zm14.15 2-5.99 4.49a1.14 1.14 0 0 1-1.32 0L5.35 8h13.3Z" fill="currentColor"/>
@@ -312,14 +317,6 @@ function contactAction({ label, value, href, icon, external = false }) {
 
 function floatingAction({ label, href, icon, external = false }) {
   if (!textOrNull(href)) return "";
-  const iconMarkup =
-    icon === "register"
-      ? '<img src="../assets/ios/rik.png" alt="" />'
-      : icon === "email"
-        ? '<img src="../assets/ios/email.svg" alt="" />'
-        : icon === "phone"
-          ? '<img src="../assets/ios/phone.svg" alt="" />'
-          : '<i class="ph-fill ph-globe-simple"></i>';
 
   return `
     <a
@@ -329,7 +326,7 @@ function floatingAction({ label, href, icon, external = false }) {
       title="${escapeHtml(label)}"
       ${external ? 'target="_blank" rel="noreferrer"' : ""}
     >
-      <span class="company-floating-action-icon company-floating-action-icon-${escapeHtml(icon)}" aria-hidden="true">${iconMarkup}</span>
+      <span class="company-floating-action-icon company-floating-action-icon-${escapeHtml(icon)}" aria-hidden="true">${iconSvg(icon)}</span>
     </a>
   `;
 }

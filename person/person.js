@@ -185,6 +185,11 @@ function iconSvg(name) {
         <path d="M12 2.75a9.25 9.25 0 1 0 0 18.5 9.25 9.25 0 0 0 0-18.5Zm5.64 8.25h-2.58a14.8 14.8 0 0 0-1.18-4.36A7.77 7.77 0 0 1 17.64 11Zm-5.64 7.72c-.69-.79-1.62-2.53-2-5.22h4c-.38 2.69-1.31 4.43-2 5.22Zm-2.2-7.22c.38-2.69 1.31-4.43 2-5.22.69.79 1.62 2.53 2 5.22h-4Zm.32-4.86A14.8 14.8 0 0 0 8.94 11H6.36a7.77 7.77 0 0 1 3.76-4.36ZM6.36 13.5h2.58a14.8 14.8 0 0 0 1.18 4.36 7.77 7.77 0 0 1-3.76-4.36Zm7.52 4.36A14.8 14.8 0 0 0 15.06 13.5h2.58a7.77 7.77 0 0 1-3.76 4.36Z" fill="currentColor"/>
       </svg>
     `,
+    register: `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M5 3.75A2.25 2.25 0 0 0 2.75 6v12A2.25 2.25 0 0 0 5 20.25h14A2.25 2.25 0 0 0 21.25 18V9.31a2.25 2.25 0 0 0-.66-1.59L17.53 4.66A2.25 2.25 0 0 0 15.94 4H5Zm10.25 1.9 4.1 4.1h-2.6A1.5 1.5 0 0 1 15.25 8.25v-2.6ZM7.5 11h9a.75.75 0 0 1 0 1.5h-9a.75.75 0 0 1 0-1.5Zm0 3.5h9a.75.75 0 0 1 0 1.5h-9a.75.75 0 0 1 0-1.5Z" fill="currentColor"/>
+      </svg>
+    `,
     eye: `
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M9.75 12C9.75 10.7574 10.7574 9.75 12 9.75C13.2426 9.75 14.25 10.7574 14.25 12C14.25 13.2426 13.2426 14.25 12 14.25C10.7574 14.25 9.75 13.2426 9.75 12Z" fill="currentColor"/>
@@ -215,12 +220,6 @@ function contactAction({ label, value, href, icon, external = false }) {
 
 function compactFloatingAction({ label, value, href, icon, external = false }) {
   if (!textOrNull(href)) return "";
-  const iconMarkup =
-    icon === "email"
-      ? '<img src="../assets/ios/email.svg" alt="" />'
-      : icon === "phone"
-        ? '<img src="../assets/ios/phone.svg" alt="" />'
-        : `<span class="company-floating-action-icon" aria-hidden="true">${iconSvg(icon)}</span>`;
   return `
     <a
       class="company-floating-action person-floating-action person-floating-action-${escapeHtml(icon)}"
@@ -229,7 +228,7 @@ function compactFloatingAction({ label, value, href, icon, external = false }) {
       title="${escapeHtml(label)}"
       ${external ? 'target="_blank" rel="noreferrer"' : ""}
     >
-      <span class="company-floating-action-icon company-floating-action-icon-${escapeHtml(icon)}" aria-hidden="true">${iconMarkup}</span>
+      <span class="company-floating-action-icon company-floating-action-icon-${escapeHtml(icon)}" aria-hidden="true">${iconSvg(icon)}</span>
     </a>
   `;
 }
