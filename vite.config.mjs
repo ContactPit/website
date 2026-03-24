@@ -18,6 +18,22 @@ async function upstreamJson(path, init) {
   return response.json();
 }
 
+function buildEmtakDescriptions(...trees) {
+  const descriptions = {};
+  const visit = (nodes) => {
+    if (!Array.isArray(nodes)) return;
+    for (const node of nodes) {
+      if (!node || typeof node !== "object") continue;
+      const code = String(node.Code || node.code || "").trim();
+      const description = String(node.DescriptionEn || node.descriptionEn || node.DescriptionEt || node.descriptionEt || "").trim();
+      if (code && description) descriptions[code] = description;
+      visit(node.children);
+    }
+  };
+  trees.forEach(visit);
+  return descriptions;
+}
+
 function sendJson(res, statusCode, payload) {
   res.statusCode = statusCode;
   res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -91,6 +107,19 @@ function apiRoutesPlugin() {
             return;
           }
 
+          if (req.url === "/api/legends" && req.method === "GET") {
+            const legends = await upstreamJson("/api/legends");
+            const legendPayload = legends.message || {};
+            sendJson(res, 200, {
+              ...legends,
+              message: {
+                ...legendPayload,
+                emtak_descriptions: buildEmtakDescriptions(legendPayload.emtaks, legendPayload.emtaks_old),
+              },
+            });
+            return;
+          }
+
           if (req.url === "/api/filters" && req.method === "POST") {
             const body = await readJsonBody(req);
             const count = await upstreamJson("/api/count-companies", {
@@ -121,8 +150,18 @@ function apiRoutesPlugin() {
               return;
             }
 
-            const payload = await upstreamJson(`/api/company/full?slug=${encodeURIComponent(slug)}`);
-            sendJson(res, 200, payload);
+            const [payload, legends] = await Promise.all([
+              upstreamJson(`/api/company/full?slug=${encodeURIComponent(slug)}`),
+              upstreamJson("/api/legends"),
+            ]);
+            const legendPayload = legends.message || {};
+            sendJson(res, 200, {
+              ...payload,
+              legends: {
+                ...legendPayload,
+                emtak_descriptions: buildEmtakDescriptions(legendPayload.emtaks, legendPayload.emtaks_old),
+              },
+            });
             return;
           }
 

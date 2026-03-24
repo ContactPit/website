@@ -9,6 +9,22 @@ async function fetchJson(path) {
   return response.json();
 }
 
+function buildEmtakDescriptions(...trees) {
+  const descriptions = {};
+  const visit = (nodes) => {
+    if (!Array.isArray(nodes)) return;
+    for (const node of nodes) {
+      if (!node || typeof node !== "object") continue;
+      const code = String(node.Code || node.code || "").trim();
+      const description = String(node.DescriptionEn || node.descriptionEn || node.DescriptionEt || node.descriptionEt || "").trim();
+      if (code && description) descriptions[code] = description;
+      visit(node.children);
+    }
+  };
+  trees.forEach(visit);
+  return descriptions;
+}
+
 module.exports = async function handler(req, res) {
   try {
     if (req.method !== "GET") {
@@ -23,10 +39,20 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    const payload = await fetchJson(`/api/company/full?slug=${encodeURIComponent(slug)}`);
+    const [payload, legends] = await Promise.all([
+      fetchJson(`/api/company/full?slug=${encodeURIComponent(slug)}`),
+      fetchJson("/api/legends"),
+    ]);
 
     res.setHeader("Cache-Control", "no-store");
-    res.status(200).json(payload);
+    const legendPayload = legends.message || {};
+    res.status(200).json({
+      ...payload,
+      legends: {
+        ...legendPayload,
+        emtak_descriptions: buildEmtakDescriptions(legendPayload.emtaks, legendPayload.emtaks_old),
+      },
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     const notFound = message.includes("404");

@@ -36,7 +36,7 @@ home-page hero search input
 → user selects company or person
 → browser routes to `/company/:slug` or `/person/:slug`
 → detail shell calls same-origin `/api/company?slug=...` or `/api/person?slug=...`
-→ placeholder page renders fetched entity name and identifier
+→ company or person page maps the payload into route-specific detail modules and renders the fetched entity
 
 ## 5) Lead Capture / Order Request Flow
 
@@ -63,5 +63,5 @@ route request
 ## Current State
 
 - The repository already implements static runtime flows for the public routes `/`, `/filters/`, `/blog/`, and `/about/`.
-- The repository already implements live search-to-detail routing for `/company/:slug` and `/person/:slug` placeholder pages in addition to the public routes `/`, `/filters/`, `/blog/`, and `/about/`.
+- The repository already implements live search-to-detail routing for `/company/:slug` and `/person/:slug`, and both detail routes now render richer multi-section intelligence views alongside the public routes `/`, `/filters/`, `/blog/`, and `/about/`.
 - The flows above still describe the broader intended client behavior as the site grows beyond the current static implementation.
