@@ -1,5 +1,21 @@
 import { getOrFetchSessionCache } from "./shared/session-bootstrap-cache.js";
 
+const bundledAssetEntries = Object.entries(
+  import.meta.glob("./assets/ios/*.{png,svg,jpg,jpeg}", {
+    eager: true,
+    import: "default",
+  })
+);
+
+const bundledAssetsByPath = new Map(bundledAssetEntries);
+const bundledAssetsByStem = new Map(
+  bundledAssetEntries.map(([path, url]) => {
+    const fileName = path.split("/").pop() || "";
+    const stem = fileName.replace(/\.[^.]+$/, "");
+    return [stem, url];
+  })
+);
+
 const numberFormatter = new Intl.NumberFormat("en-US");
 const compactNumber = new Intl.NumberFormat("en-US", {
   notation: "compact",
@@ -46,8 +62,8 @@ const longTokens = new Set(Object.keys(legalReplacements).map((value) => value.t
 const shortTokens = new Set(Object.values(legalReplacements).map((value) => value.toLowerCase()));
 
 const assetManifest = {
-  Icon: "./assets/ios/Icon.svg",
-  test2: "./assets/ios/test2.png",
+  Icon: bundledAssetsByPath.get("./assets/ios/Icon.svg"),
+  test2: bundledAssetsByPath.get("./assets/ios/test2.png"),
 };
 
 const HOME_CACHE_KEY = "home-bootstrap";
@@ -57,13 +73,14 @@ const SESSION_BOOTSTRAP_TTL_MS = 30 * 60 * 1000;
 function assetPath(ref) {
   if (!ref) return "";
   if (assetManifest[ref]) return assetManifest[ref];
-  return `./assets/ios/${ref}.png`;
+  return bundledAssetsByStem.get(ref) || bundledAssetsByPath.get(`./assets/ios/${ref}.png`) || "";
 }
 
 function assetSvgPath(ref) {
   if (!ref) return "";
-  if (assetManifest[ref]?.endsWith(".svg")) return assetManifest[ref];
-  return `./assets/ios/${ref}.svg`;
+  const asset = assetManifest[ref];
+  if (asset?.endsWith(".svg")) return asset;
+  return bundledAssetsByPath.get(`./assets/ios/${ref}.svg`) || "";
 }
 
 function normalizeHex(value) {
