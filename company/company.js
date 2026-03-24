@@ -317,6 +317,14 @@ function contactAction({ label, value, href, icon, external = false }) {
 
 function floatingAction({ label, href, icon, external = false }) {
   if (!textOrNull(href)) return "";
+  const iconMarkup =
+    icon === "register"
+      ? '<img src="/assets/ios/rik.png" alt="" />'
+      : icon === "email"
+        ? '<img src="/assets/ios/email.svg" alt="" />'
+        : icon === "phone"
+          ? '<img src="/assets/ios/phone.svg" alt="" />'
+          : '<i class="ph-fill ph-globe-simple"></i>';
 
   return `
     <a
@@ -326,7 +334,7 @@ function floatingAction({ label, href, icon, external = false }) {
       title="${escapeHtml(label)}"
       ${external ? 'target="_blank" rel="noreferrer"' : ""}
     >
-      <span class="company-floating-action-icon company-floating-action-icon-${escapeHtml(icon)}" aria-hidden="true">${iconSvg(icon)}</span>
+      <span class="company-floating-action-icon company-floating-action-icon-${escapeHtml(icon)}" aria-hidden="true">${iconMarkup}</span>
     </a>
   `;
 }

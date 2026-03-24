@@ -1720,7 +1720,8 @@ img {
 }
 
 .company-floating-action-icon svg,
-.company-floating-action-icon i {
+.company-floating-action-icon i,
+.company-floating-action-icon img {
   display: block;
   width: 22px;
   height: 22px;
@@ -1732,13 +1733,13 @@ img {
 }
 
 .company-floating-action-icon-email,
-.company-floating-action-icon-email svg {
+.company-floating-action-icon-email img {
   width: 24px;
   height: 24px;
 }
 
 .company-floating-action-icon-phone,
-.company-floating-action-icon-phone svg {
+.company-floating-action-icon-phone img {
   width: 22px;
   height: 22px;
 }
@@ -1752,9 +1753,14 @@ img {
 }
 
 .company-floating-action-icon-register,
-.company-floating-action-icon-register svg {
+.company-floating-action-icon-register img {
   width: 16px;
   height: 16px;
+}
+
+.company-floating-action-icon img {
+  object-fit: contain;
+  filter: brightness(0) invert(1);
 }
 
 .company-floating-stat,

@@ -220,6 +220,14 @@ function contactAction({ label, value, href, icon, external = false }) {
 
 function compactFloatingAction({ label, value, href, icon, external = false }) {
   if (!textOrNull(href)) return "";
+  const iconMarkup =
+    icon === "email"
+      ? '<img src="/assets/ios/email.svg" alt="" />'
+      : icon === "phone"
+        ? '<img src="/assets/ios/phone.svg" alt="" />'
+        : icon === "register"
+          ? '<img src="/assets/ios/rik.png" alt="" />'
+          : `<span class="company-floating-action-icon" aria-hidden="true">${iconSvg(icon)}</span>`;
   return `
     <a
       class="company-floating-action person-floating-action person-floating-action-${escapeHtml(icon)}"
@@ -228,7 +236,7 @@ function compactFloatingAction({ label, value, href, icon, external = false }) {
       title="${escapeHtml(label)}"
       ${external ? 'target="_blank" rel="noreferrer"' : ""}
     >
-      <span class="company-floating-action-icon company-floating-action-icon-${escapeHtml(icon)}" aria-hidden="true">${iconSvg(icon)}</span>
+      <span class="company-floating-action-icon company-floating-action-icon-${escapeHtml(icon)}" aria-hidden="true">${iconMarkup}</span>
     </a>
   `;
 }
