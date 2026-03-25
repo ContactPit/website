@@ -1,6 +1,10 @@
 const EMAIL_ICON_URL = new URL("../assets/ios/email.svg", import.meta.url).href;
 const PHONE_ICON_URL = new URL("../assets/ios/phone.svg", import.meta.url).href;
 const REGISTER_ICON_URL = new URL("../assets/ios/rik.png", import.meta.url).href;
+const APPLE_MAPS_TOKEN = import.meta.env.VITE_APPLE_MAPS_TOKEN || "";
+const MAP_MARKER_COLOR = "#9422db";
+
+let appleMapKitPromise = null;
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -163,6 +167,11 @@ function metricCard({ label, value, note, accent = "" }) {
   `;
 }
 
+function firstContact(contacts, types) {
+  const typeSet = new Set(types.map((type) => String(type).toUpperCase()));
+  return safeArray(contacts).find((item) => typeSet.has(String(item?.type || "").toUpperCase()) && textOrNull(item?.value));
+}
+
 function contactTypeMeta(type) {
   const normalized = String(type || "").trim().toUpperCase();
   if (normalized === "EMAIL") return { label: "Email", icon: "email" };
@@ -245,6 +254,10 @@ function compactFloatingAction({ label, value, href, icon, external = false }) {
   `;
 }
 
+function escapeAttributeJson(value) {
+  return escapeHtml(JSON.stringify(value));
+}
+
 function floatingStat({ label, value, icon }) {
   if (!textOrNull(value)) return "";
   return `
@@ -325,32 +338,37 @@ function roleDateText(role) {
 function companyCardMarkup(company) {
   const roles = safeArray(company?.roles);
   const href = companyLinkHref(company);
-  const roleChips = roles
+  const roleItems = roles
     .map(
       (role) => `
-        <article class="company-tag-card">
-          <p class="company-tag-title">${escapeHtml(roleText(role))}</p>
-          ${roleDateText(role) ? `<p class="company-tag-meta">${escapeHtml(roleDateText(role))}</p>` : ""}
-        </article>
+        <li class="company-data-row-copy">
+          <span class="person-role-name">${escapeHtml(roleText(role))}</span>
+          ${roleDateText(role) ? `<p class="person-role-date">${escapeHtml(roleDateText(role))}</p>` : ""}
+        </li>
       `
     )
     .join("");
+  const companyName = textOrNull(company?.name) || "Unknown company";
+  const registryCode = textOrNull(company?.registry_code);
+  const headerContent = `
+    <div class="company-person-avatar">${escapeHtml(initials(companyName))}</div>
+    <div class="company-person-copy person-company-copy">
+      <h3>${escapeHtml(companyName)}</h3>
+      ${registryCode ? `<p>${escapeHtml(registryCode)}</p>` : ""}
+    </div>
+    ${href ? '<span class="company-person-chevron" aria-hidden="true">›</span>' : ""}
+  `;
 
   return `
     <article class="person-company-card">
-      <div class="person-company-card-head">
-        <div>
-          <p class="company-card-eyebrow">Company</p>
-          <h3>${escapeHtml(textOrNull(company?.name) || "Unknown company")}</h3>
-        </div>
-        <div class="person-company-actions">
-          ${textOrNull(company?.registry_code) ? `<span class="company-inline-meta">Registry ${escapeHtml(String(company.registry_code))}</span>` : ""}
-          ${href ? `<a class="company-inline-meta person-link-chip" href="${escapeHtml(href)}">Open company view</a>` : ""}
-        </div>
-      </div>
       ${
-        roleChips
-          ? `<div class="company-tag-grid person-role-grid">${roleChips}</div>`
+        href
+          ? `<a class="person-company-card-head person-company-card-head-link" href="${escapeHtml(href)}" aria-label="Open ${escapeHtml(companyName)} company view">${headerContent}</a>`
+          : `<div class="person-company-card-head">${headerContent}</div>`
+      }
+      ${
+        roleItems
+          ? `<ul class="person-role-list">${roleItems}</ul>`
           : '<p class="company-empty-copy">No role records are available for this company.</p>'
       }
     </article>
@@ -361,12 +379,6 @@ function certificateCard(title, items, titleGetter) {
   const list = safeArray(items);
   return `
     <article class="company-section-card">
-      <div class="company-section-card-head">
-        <div>
-          <p class="company-card-eyebrow">Certificates</p>
-          <h3>${escapeHtml(title)}</h3>
-        </div>
-      </div>
       ${
         list.length
           ? `
@@ -387,42 +399,239 @@ function certificateCard(title, items, titleGetter) {
                 .join("")}
             </div>
           `
-          : `<p class="company-empty-copy">No ${escapeHtml(title.toLowerCase())} records are available.</p>`
+          : '<p class="company-empty-copy">No records are available.</p>'
       }
     </article>
   `;
 }
 
-function uniqueAddresses(companiesData) {
-  const seen = new Set();
-  return safeArray(companiesData)
-    .map((item) => item?.address)
-    .filter((address) => {
-      const longAddress = textOrNull(address?.address_long);
-      if (!longAddress) return false;
-      if (seen.has(longAddress)) return false;
-      seen.add(longAddress);
-      return true;
-    });
+function normalizeCoordinates(coordinates) {
+  const latitude = numberOrNull(coordinates?.latitude ?? coordinates?.lat);
+  const longitude = numberOrNull(coordinates?.longitude ?? coordinates?.lng ?? coordinates?.lon);
+  if (latitude === null || longitude === null) return null;
+  return { latitude, longitude };
 }
 
-function addressCardMarkup(address) {
-  const addressText = textOrNull(address?.address_long) || textOrNull(address?.address) || "Unknown address";
-  const mapsHref = `https://www.google.com/maps?q=${encodeURIComponent(addressText)}`;
+function uniqueCompanyLocations(person) {
+  const companyNameByRegistry = new Map(
+    safeArray(person?.companies).map((company) => [String(company?.registry_code || ""), textOrNull(company?.name)])
+  );
+  const seen = new Set();
+
+  return safeArray(person?.companies_data)
+    .map((companyData, index) => {
+      const registryCode = textOrNull(companyData?.registry_code);
+      const companyName =
+        companyNameByRegistry.get(String(companyData?.registry_code || "")) ||
+        textOrNull(companyData?.name) ||
+        (registryCode ? `Company ${registryCode}` : `Company ${index + 1}`);
+      const address = companyData?.address || {};
+      const addressText = textOrNull(address?.address_long) || textOrNull(address?.address);
+      const coordinates = normalizeCoordinates(address?.coordinates || companyData?.coordinates);
+      const key = [
+        registryCode || companyName,
+        addressText || "",
+        coordinates ? `${coordinates.latitude.toFixed(6)},${coordinates.longitude.toFixed(6)}` : "",
+      ].join("|");
+
+      if (seen.has(key)) return null;
+      seen.add(key);
+
+      return {
+        companyName,
+        registryCode,
+        address,
+        addressText,
+        coordinates,
+      };
+    })
+    .filter((location) => location && (location.addressText || location.coordinates));
+}
+
+function googleMapsEmbedUrlForLocations(locations) {
+  const points = safeArray(locations).filter((location) => location?.coordinates);
+  if (!points.length) return null;
+  const coordinates = points[0].coordinates;
+  return `https://www.google.com/maps?q=${encodeURIComponent(`${coordinates.latitude},${coordinates.longitude}`)}&z=15&output=embed`;
+}
+
+function appleMapsHrefForLocation(location) {
+  const addressText = textOrNull(location?.addressText);
+  const label = textOrNull(location?.companyName) || addressText || "Location";
+  const params = new URLSearchParams();
+
+  if (location?.coordinates) {
+    params.set("ll", `${location.coordinates.latitude},${location.coordinates.longitude}`);
+    params.set("q", label);
+  } else if (addressText) {
+    params.set("q", addressText);
+  }
+
+  return `https://maps.apple.com/?${params.toString()}`;
+}
+
+function loadAppleMapKit() {
+  if (!APPLE_MAPS_TOKEN) {
+    return Promise.reject(new Error("Missing Apple Maps token"));
+  }
+  if (window.mapkit?.Map) {
+    return Promise.resolve(window.mapkit);
+  }
+  if (appleMapKitPromise) {
+    return appleMapKitPromise;
+  }
+
+  appleMapKitPromise = new Promise((resolve, reject) => {
+    const callbackName = `contactPitAppleMapKitInit${Math.random().toString(36).slice(2)}`;
+    const timeoutId = window.setTimeout(() => {
+      cleanup();
+      appleMapKitPromise = null;
+      reject(new Error("Timed out loading Apple MapKit JS"));
+    }, 10000);
+    const cleanup = () => {
+      window.clearTimeout(timeoutId);
+      delete window[callbackName];
+    };
+
+    window[callbackName] = () => {
+      cleanup();
+      resolve(window.mapkit);
+    };
+
+    const script = document.createElement("script");
+    script.src = "https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.core.js";
+    script.async = true;
+    script.crossOrigin = "anonymous";
+    script.dataset.callback = callbackName;
+    script.dataset.libraries = "map,annotations";
+    script.dataset.token = APPLE_MAPS_TOKEN;
+    script.onerror = () => {
+      cleanup();
+      appleMapKitPromise = null;
+      reject(new Error("Failed to load Apple MapKit JS"));
+    };
+    document.head.append(script);
+  });
+
+  return appleMapKitPromise;
+}
+
+function renderAppleLocationMap(container, locations) {
+  const points = safeArray(locations).filter((location) => location?.coordinates);
+  if (!container || !points.length || !window.mapkit?.Map) return;
+
+  const { mapkit } = window;
+  const map = new mapkit.Map(container);
+  map.mapType = mapkit.Map.MapTypes.Standard;
+  map.colorScheme = mapkit.Map.ColorSchemes.Light;
+  map.tintColor = "#7a1ce1";
+  const annotations = points.map(
+    (location, index) =>
+      new mapkit.MarkerAnnotation(new mapkit.Coordinate(location.coordinates.latitude, location.coordinates.longitude), {
+        title: location.companyName || `Location ${index + 1}`,
+        subtitle: location.addressText || "",
+        color: MAP_MARKER_COLOR,
+        glyphColor: "#ffffff",
+      })
+  );
+
+  map.showItems(annotations);
+  if (mapkit.CoordinateRegion && mapkit.CoordinateSpan) {
+    const latitudes = points.map((location) => location.coordinates.latitude);
+    const longitudes = points.map((location) => location.coordinates.longitude);
+    const minLatitude = Math.min(...latitudes);
+    const maxLatitude = Math.max(...latitudes);
+    const minLongitude = Math.min(...longitudes);
+    const maxLongitude = Math.max(...longitudes);
+    const latitudeDelta = Math.max((maxLatitude - minLatitude) * 1.22, 0.04);
+    const longitudeDelta = Math.max((maxLongitude - minLongitude) * 1.22, 0.04);
+    map.region = new mapkit.CoordinateRegion(
+      new mapkit.Coordinate((minLatitude + maxLatitude) / 2, (minLongitude + maxLongitude) / 2),
+      new mapkit.CoordinateSpan(latitudeDelta, longitudeDelta)
+    );
+  }
+}
+
+function renderFallbackLocationMap(container) {
+  const fallbackUrl = container?.getAttribute("data-person-map-fallback-url");
+  if (!container || !fallbackUrl) return;
+  container.innerHTML = `
+    <iframe
+      class="company-map-embed"
+      src="${escapeHtml(fallbackUrl)}"
+      title="Person company locations map"
+      loading="lazy"
+      referrerpolicy="no-referrer-when-downgrade"
+    ></iframe>
+  `;
+}
+
+function locationMapMarkup(locations) {
+  const points = safeArray(locations).filter((location) => location?.coordinates);
+  const mapUrl = googleMapsEmbedUrlForLocations(points);
+  const canRenderAppleMap = Boolean(APPLE_MAPS_TOKEN && points.length);
+
+  if (!points.length || !mapUrl) {
+    return `
+      <div class="company-location-stack person-location-stack">
+        <div class="company-map-embed-shell company-location-map person-location-map">
+          <div class="company-map-orb"><span></span><span></span><span></span></div>
+        </div>
+        <p class="company-empty-copy">No coordinates are available for this person's linked company locations.</p>
+      </div>
+    `;
+  }
+
   return `
-    <article class="company-tag-card person-address-card">
-      <p class="company-tag-title">${escapeHtml(addressText)}</p>
-      <p class="company-tag-meta">${escapeHtml(
-        [
-          textOrNull(address?.county),
-          textOrNull(address?.["city/municipality"]),
-          textOrNull(address?.postal_code),
-        ]
-          .filter(Boolean)
-          .join(" • ") || "Known company address"
-      )}</p>
-      <a class="person-address-link" href="${escapeHtml(mapsHref)}" target="_blank" rel="noreferrer">Open in Maps</a>
-    </article>
+    <div class="company-location-stack person-location-stack">
+      <div class="company-map-embed-shell company-location-map person-location-map">
+        ${
+          canRenderAppleMap
+            ? `
+              <div
+                class="person-location-canvas"
+                data-person-apple-map
+                data-person-apple-map-locations="${escapeAttributeJson(
+                  points.map((location) => ({
+                    companyName: location.companyName,
+                    addressText: location.addressText,
+                    coordinates: location.coordinates,
+                  }))
+                )}"
+                data-person-map-fallback-url="${escapeHtml(mapUrl)}"
+              ></div>
+            `
+            : `
+              <iframe
+                class="company-map-embed"
+                src="${escapeHtml(mapUrl)}"
+                title="Person company locations map"
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+              ></iframe>
+            `
+        }
+      </div>
+      <div class="person-location-legend">
+        ${points
+          .map((location) => {
+            const href = companyLinkHref({ name: location.companyName, registry_code: location.registryCode });
+            const content = `
+              <div class="company-person-avatar">${escapeHtml(initials(location.companyName || "Company"))}</div>
+              <div class="company-person-copy person-location-legend-copy">
+                <h3>${escapeHtml(location.companyName)}</h3>
+                ${location.registryCode ? `<p>${escapeHtml(location.registryCode)}</p>` : ""}
+              </div>
+              ${href ? '<span class="company-person-chevron" aria-hidden="true">›</span>' : ""}
+            `;
+
+            return href
+              ? `<a class="company-person-card is-navigable person-location-legend-item" href="${escapeHtml(href)}">${content}</a>`
+              : `<article class="company-person-card person-location-legend-item">${content}</article>`;
+          })
+          .join("")}
+      </div>
+    </div>
   `;
 }
 
@@ -473,12 +682,6 @@ function chartCard(title, points, formatter, scope) {
   `;
 }
 
-function latestByYear(items) {
-  return safeArray(items)
-    .slice()
-    .sort((left, right) => (numberOrNull(right?.year) || 0) - (numberOrNull(left?.year) || 0))[0] || null;
-}
-
 function companyDataRows(rows, emptyLabel) {
   const list = safeArray(rows).filter((row) => textOrNull(row?.label) && textOrNull(row?.value));
   if (!list.length) {
@@ -495,7 +698,7 @@ function companyDataRows(rows, emptyLabel) {
                 <span>${escapeHtml(row.label)}</span>
                 ${textOrNull(row.meta) ? `<p>${escapeHtml(row.meta)}</p>` : ""}
               </div>
-              <strong>${escapeHtml(row.value)}</strong>
+              <strong class="${row.valueClass ? escapeHtml(row.valueClass) : ""}">${escapeHtml(row.value)}</strong>
             </div>
           `
         )
@@ -504,154 +707,377 @@ function companyDataRows(rows, emptyLabel) {
   `;
 }
 
-function buildCompanyFinancialSection(person, companyData) {
-  const company = safeArray(person?.companies).find(
-    (item) => String(item?.registry_code || "") === String(companyData?.registry_code || "")
-  );
-  const companyName = textOrNull(company?.name) || `Company ${companyData?.registry_code || ""}`.trim();
-  const latestStatement = latestByYear(companyData?.income_statements);
-  const latestProfitability = latestByYear(companyData?.profitability);
-  const turnoverHistory = safeArray(companyData?.tax_information?.turnover_history?.quarterly).slice(-6);
-  const annualRevenueHistory = safeArray(companyData?.income_statements)
-    .slice()
-    .sort((left, right) => (numberOrNull(left?.year) || 0) - (numberOrNull(right?.year) || 0))
-    .slice(-6)
-    .map((item) => ({
-      period: item?.year,
-      value: item?.agg_total_revenue,
-    }));
-  const annualNetProfitHistory = safeArray(companyData?.income_statements)
-    .slice()
-    .sort((left, right) => (numberOrNull(left?.year) || 0) - (numberOrNull(right?.year) || 0))
-    .slice(-6)
-    .map((item) => ({
-      period: item?.year,
-      value: item?.agg_net_profit,
-    }));
-  const address = textOrNull(companyData?.address?.address_long) || textOrNull(companyData?.address?.address);
-  const href = companyLinkHref(company);
+function personFinancialYears(companiesData) {
+  return Array.from(
+    new Set(
+      safeArray(companiesData)
+        .flatMap((companyData) => safeArray(companyData?.income_statements))
+        .map((statement) => numberOrNull(statement?.year))
+        .filter((year) => year !== null)
+    )
+  ).sort((left, right) => right - left);
+}
 
+function personHasTaxInformation(companiesData) {
+  return safeArray(companiesData).some((companyData) => companyData?.tax_information);
+}
+
+function personFinancialInitialPeriod(companiesData) {
+  const years = personFinancialYears(companiesData);
+  if (years.length) return `year:${years[0]}`;
+  if (personHasTaxInformation(companiesData)) return "last-quarter";
+  return "";
+}
+
+function personFinancialPeriodLabel(period) {
+  if (period === "last-quarter") return "Last quarter";
+  if (period === "last-4-quarters") return "Last 4 quarters";
+  if (String(period).startsWith("year:")) return String(period).slice(5);
+  return "";
+}
+
+function companyForRegistry(person, registryCode) {
+  return safeArray(person?.companies).find((item) => String(item?.registry_code || "") === String(registryCode || ""));
+}
+
+function companyReference(person, registryCode) {
+  const company = companyForRegistry(person, registryCode);
+  const fallback = {
+    name: textOrNull(company?.name) || `Company ${registryCode || ""}`.trim() || "Unknown company",
+    registry_code: registryCode,
+  };
+
+  return {
+    company: company || fallback,
+    name: textOrNull(company?.name) || fallback.name,
+    registryCode: textOrNull(registryCode),
+    href: companyLinkHref(company || fallback),
+  };
+}
+
+function financialCompanyRows(items, emptyLabel, valueFormatter, valueAccessor = (item) => item?.value) {
+  const list = safeArray(items)
+    .map((item) => ({
+      item,
+      rawValue: numberOrNull(valueAccessor(item)),
+    }))
+    .filter(({ item, rawValue }) => textOrNull(item?.name) && rawValue !== null);
+  if (!list.length) {
+    return `<p class="company-empty-copy">${escapeHtml(emptyLabel)}</p>`;
+  }
+
+  return companyDataRows(
+    list.map(({ item, rawValue }) => ({
+      label: item.name,
+      value: valueFormatter(rawValue),
+      meta: item.registryCode || null,
+      valueClass: rawValue < 0 ? "person-financial-value is-negative" : "person-financial-value",
+    })),
+    emptyLabel
+  );
+}
+
+function profitabilityMarginRows(rows, emptyLabel) {
+  const list = safeArray(rows);
+  if (!list.length) {
+    return `<p class="company-empty-copy">${escapeHtml(emptyLabel)}</p>`;
+  }
+
+  return `
+    <div class="person-financial-margin-table">
+      <div class="person-financial-margin-row is-head">
+        <span class="person-financial-margin-label is-company">Company</span>
+        <span class="person-financial-margin-label">Operating</span>
+        <span class="person-financial-margin-label">Net</span>
+      </div>
+      ${list
+        .map((row) => {
+          const nameMarkup = row.href
+            ? `<a class="person-financial-company-link" href="${escapeHtml(row.href)}">${escapeHtml(row.name)}</a>`
+            : `<span>${escapeHtml(row.name)}</span>`;
+
+          return `
+            <div class="person-financial-margin-row">
+              <div class="person-financial-margin-company">${nameMarkup}</div>
+              <strong class="person-financial-margin-value${Number(row.operatingMargin) < 0 ? " is-negative" : ""}">${escapeHtml(
+                formatPercent(row.operatingMargin)
+              )}</strong>
+              <strong class="person-financial-margin-value${Number(row.netMargin) < 0 ? " is-negative" : ""}">${escapeHtml(
+                formatPercent(row.netMargin)
+              )}</strong>
+            </div>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
+}
+
+function personFinancialSectionMarkup({ title, description, content, eyebrow = "Financial" }) {
   return `
     <section class="company-subsection-grid">
       <div class="company-subsection-copy">
-        <p class="company-section-eyebrow">Tax & financial</p>
-        <h3>${escapeHtml(companyName)}</h3>
-        <p>${escapeHtml(
-          [
-            textOrNull(companyData?.registry_code) ? `Registry ${companyData.registry_code}` : null,
-            address,
-          ]
-            .filter(Boolean)
-            .join(" • ") || "Company-linked tax and financial footprint."
-        )}</p>
-        ${href ? `<a class="person-subsection-link" href="${escapeHtml(href)}">Open company intelligence</a>` : ""}
+        <p class="company-section-eyebrow">${escapeHtml(eyebrow)}</p>
+        <h3>${escapeHtml(title)}</h3>
+        <p>${escapeHtml(description)}</p>
       </div>
       <article class="company-section-card">
-        <div class="person-financial-card-stack">
-          <div class="company-kpi-grid person-kpi-grid">
-            ${metricCard({
-              label: "4-quarter turnover",
-              value: formatCompactCurrency(companyData?.tax_information?.turnover_4_quarter_sum),
-              note: "EMTA aggregate across the latest four quarters",
-              accent: "is-featured",
-            })}
-            ${metricCard({
-              label: "Last quarter turnover",
-              value: formatCompactCurrency(companyData?.tax_information?.turnover_last_quarter),
-              note: "Most recent quarter",
-            })}
-            ${metricCard({
-              label: "Tax debt",
-              value: formatCompactCurrency(companyData?.tax_information?.tax_debt),
-              note: "Current recorded debt",
-            })}
-            ${metricCard({
-              label: "Latest annual revenue",
-              value: formatCompactCurrency(latestStatement?.agg_total_revenue),
-              note: latestStatement?.year ? `Income statement ${latestStatement.year}` : "No annual statement yet",
-            })}
-            ${metricCard({
-              label: "Latest net profit",
-              value: formatCompactCurrency(latestStatement?.agg_net_profit),
-              note: latestStatement?.year ? `Income statement ${latestStatement.year}` : "No annual statement yet",
-            })}
-            ${metricCard({
-              label: "Latest net margin",
-              value: formatPercent(latestProfitability?.net_margin),
-              note: latestProfitability?.year ? `Profitability ${latestProfitability.year}` : "No profitability series yet",
-            })}
-          </div>
-          <div class="company-chart-grid person-chart-grid">
-            ${chartCard("Quarterly turnover", turnoverHistory, formatCompactCurrency, "EMTA")}
-            ${chartCard("Annual revenue", annualRevenueHistory, formatCompactCurrency, "Annual")}
-            ${chartCard("Annual net profit", annualNetProfitHistory, formatCompactCurrency, "Annual")}
-          </div>
-          <div class="company-grid company-grid-two person-financial-detail-grid">
-            <article class="company-chart-card">
-              <div class="company-section-card-head">
-                <div>
-                  <p class="company-card-eyebrow">Latest year</p>
-                  <h3>Profitability ratios</h3>
-                </div>
-              </div>
-              ${companyDataRows(
-                [
-                  {
-                    label: "Revenue",
-                    value: formatCurrency(latestProfitability?.revenue),
-                    meta: latestProfitability?.year ? String(latestProfitability.year) : null,
-                  },
-                  {
-                    label: "Operating profit",
-                    value: formatCurrency(latestProfitability?.operating_profit),
-                  },
-                  {
-                    label: "Profit before tax",
-                    value: formatCurrency(latestProfitability?.profit_before_tax),
-                  },
-                  {
-                    label: "Net profit",
-                    value: formatCurrency(latestProfitability?.net_profit),
-                  },
-                  {
-                    label: "Operating margin",
-                    value: formatPercent(latestProfitability?.operating_margin),
-                  },
-                  {
-                    label: "Pre-tax margin",
-                    value: formatPercent(latestProfitability?.profit_before_tax_margin),
-                  },
-                  {
-                    label: "Net margin",
-                    value: formatPercent(latestProfitability?.net_margin),
-                  },
-                ],
-                "No profitability ratios are available."
-              )}
-            </article>
-            <article class="company-chart-card">
-              <div class="company-section-card-head">
-                <div>
-                  <p class="company-card-eyebrow">History</p>
-                  <h3>Reported annual statements</h3>
-                </div>
-              </div>
-              ${companyDataRows(
-                safeArray(companyData?.income_statements)
-                  .slice()
-                  .sort((left, right) => (numberOrNull(right?.year) || 0) - (numberOrNull(left?.year) || 0))
-                  .map((item) => ({
-                    label: String(item?.year || "Unknown year"),
-                    value: formatCompactCurrency(item?.agg_total_revenue),
-                    meta: `Net profit ${formatCompactCurrency(item?.agg_net_profit)}`,
-                  })),
-                "No annual statements are available."
-              )}
-            </article>
-          </div>
-        </div>
+        ${content}
       </article>
     </section>
+  `;
+}
+
+function financialSummaryHead({ label, value, note }) {
+  return `
+    <div class="company-section-card-head company-section-card-head-split person-financial-summary-head">
+      <div class="person-financial-summary-copy">
+        <p class="company-card-eyebrow">${escapeHtml(label)}</p>
+        <h3 class="person-financial-summary-value">${escapeHtml(value)}</h3>
+      </div>
+      ${textOrNull(note) ? `<p class="person-financial-summary-note">${escapeHtml(note)}</p>` : ""}
+    </div>
+  `;
+}
+
+function financialPoolChips({ profitPool, lossPool }) {
+  return `
+    <div class="person-financial-pool-chips">
+      <span class="person-financial-pool-chip">
+        <span class="person-financial-pool-dot"></span>
+        <span>Profit pool</span>
+        <strong>${escapeHtml(formatCompactCurrency(profitPool))}</strong>
+      </span>
+      <span class="person-financial-pool-chip is-negative">
+        <span class="person-financial-pool-dot is-negative"></span>
+        <span>Loss pool</span>
+        <strong>${escapeHtml(formatCompactCurrency(-lossPool))}</strong>
+      </span>
+    </div>
+  `;
+}
+
+function turnoverRowsForPeriod(person, companiesData, period) {
+  return safeArray(companiesData)
+    .map((companyData) => {
+      const taxInformation = companyData?.tax_information;
+      const value =
+        period === "last-quarter"
+          ? numberOrNull(taxInformation?.turnover_last_quarter)
+          : numberOrNull(taxInformation?.turnover_4_quarter_sum);
+      if (value === null || value <= 0) return null;
+      const reference = companyReference(person, companyData?.registry_code);
+      return {
+        ...reference,
+        value,
+      };
+    })
+    .filter(Boolean)
+    .sort((left, right) => right.value - left.value);
+}
+
+function taxDebtRows(person, companiesData) {
+  return safeArray(companiesData)
+    .map((companyData) => {
+      const value = numberOrNull(companyData?.tax_information?.tax_debt);
+      if (value === null || value <= 0) return null;
+      const reference = companyReference(person, companyData?.registry_code);
+      return {
+        ...reference,
+        value,
+      };
+    })
+    .filter(Boolean)
+    .sort((left, right) => right.value - left.value);
+}
+
+function revenueRowsForYear(person, companiesData, year) {
+  return safeArray(companiesData)
+    .map((companyData) => {
+      const statement = safeArray(companyData?.income_statements).find((item) => numberOrNull(item?.year) === year);
+      const value = numberOrNull(statement?.agg_total_revenue);
+      if (value === null || value <= 0) return null;
+      const reference = companyReference(person, companyData?.registry_code);
+      return {
+        ...reference,
+        value,
+      };
+    })
+    .filter(Boolean)
+    .sort((left, right) => right.value - left.value);
+}
+
+function profitabilityRowsForYear(person, companiesData, year) {
+  return safeArray(companiesData)
+    .map((companyData) => {
+      const profitability = safeArray(companyData?.profitability).find((item) => numberOrNull(item?.year) === year);
+      if (!profitability) return null;
+      const reference = companyReference(person, companyData?.registry_code);
+      return {
+        ...reference,
+        operatingMargin: numberOrNull(profitability?.operating_margin),
+        netMargin: numberOrNull(profitability?.net_margin),
+        netProfit: numberOrNull(profitability?.net_profit),
+      };
+    })
+    .filter(Boolean);
+}
+
+function buildTaxFinancialPanel(person, companiesData, period, activePeriod) {
+  const rows = turnoverRowsForPeriod(person, companiesData, period);
+  const totalTurnover = rows.reduce((sum, row) => sum + row.value, 0);
+  const debtRows = taxDebtRows(person, companiesData);
+  const totalDebt = debtRows.reduce((sum, row) => sum + row.value, 0);
+  const periodLabel = personFinancialPeriodLabel(period).toLowerCase();
+
+  return `
+    <div class="company-financial-period-panel${activePeriod === period ? " is-active" : ""}" data-person-financial-period-panel="${escapeHtml(period)}">
+      <div class="company-subsection-stack person-financial-panel-stack">
+        ${personFinancialSectionMarkup({
+          title: "Turnover",
+          description: `EMTA-reported turnover for ${periodLabel} across linked companies.`,
+          content: `
+            ${financialSummaryHead({
+              label: personFinancialPeriodLabel(period),
+              value: formatCompactCurrency(totalTurnover),
+              note: rows.length ? `${rows.length} linked companies with turnover in the selected period.` : "No turnover records are available for the selected period.",
+            })}
+            ${financialCompanyRows(rows, "No turnover records are available for the selected period.", formatCurrency)}
+          `,
+        })}
+        ${personFinancialSectionMarkup({
+          title: "Tax debt",
+          description: "Current tax debt balances across linked companies.",
+          content: `
+            ${financialSummaryHead({
+              label: "Current total",
+              value: formatCompactCurrency(totalDebt),
+              note: debtRows.length ? `${debtRows.length} linked companies currently show tax debt.` : "No linked companies currently show tax debt.",
+            })}
+            ${financialCompanyRows(debtRows, "No linked companies currently show tax debt.", formatCurrency)}
+          `,
+        })}
+      </div>
+    </div>
+  `;
+}
+
+function buildAnnualFinancialPanel(person, companiesData, year, activePeriod) {
+  const panelKey = `year:${year}`;
+  const revenueRows = revenueRowsForYear(person, companiesData, year);
+  const totalRevenue = revenueRows.reduce((sum, row) => sum + row.value, 0);
+  const profitabilityRows = profitabilityRowsForYear(person, companiesData, year);
+  const profitRows = profitabilityRows
+    .filter((row) => row.netProfit !== null)
+    .slice()
+    .sort((left, right) => right.netProfit - left.netProfit);
+  const totalNetProfit = profitRows.reduce((sum, row) => sum + row.netProfit, 0);
+  const profitPool = profitRows.filter((row) => row.netProfit > 0).reduce((sum, row) => sum + row.netProfit, 0);
+  const lossPool = profitRows.filter((row) => row.netProfit < 0).reduce((sum, row) => sum + Math.abs(row.netProfit), 0);
+  const marginRows = profitabilityRows
+    .slice()
+    .sort((left, right) => {
+      const leftValue = left.netMargin ?? -Infinity;
+      const rightValue = right.netMargin ?? -Infinity;
+      if (leftValue === rightValue) return left.name.localeCompare(right.name);
+      return rightValue - leftValue;
+    });
+
+  return `
+    <div class="company-financial-period-panel${activePeriod === panelKey ? " is-active" : ""}" data-person-financial-period-panel="${escapeHtml(panelKey)}">
+      <div class="company-subsection-stack person-financial-panel-stack">
+        ${personFinancialSectionMarkup({
+          title: "Revenue",
+          description: `Annual income statement revenue by linked company for ${year}.`,
+          content: `
+            ${financialSummaryHead({
+              label: `${year}`,
+              value: formatCompactCurrency(totalRevenue),
+              note: revenueRows.length ? `${revenueRows.length} linked companies reported revenue in ${year}.` : `No linked companies reported revenue in ${year}.`,
+            })}
+            ${financialCompanyRows(revenueRows, `No linked companies reported revenue in ${year}.`, formatCurrency)}
+          `,
+        })}
+        ${
+          profitabilityRows.length
+            ? personFinancialSectionMarkup({
+                title: "Profit",
+                description: `Net profit contribution by linked company for ${year}.`,
+                content: `
+                  ${financialSummaryHead({
+                    label: `${year} net profit`,
+                    value: formatCompactCurrency(totalNetProfit),
+                    note: "Positive and negative company contributions combined.",
+                  })}
+                  ${financialPoolChips({ profitPool, lossPool })}
+                  ${financialCompanyRows(profitRows, `No net profit figures are available for ${year}.`, formatCurrency, (row) => row.netProfit)}
+                `,
+              })
+            : ""
+        }
+        ${
+          profitabilityRows.length
+            ? personFinancialSectionMarkup({
+                title: "Profit margins",
+                description: `Operating and net margin standings for linked companies in ${year}.`,
+                content: profitabilityMarginRows(marginRows, `No profitability margin data is available for ${year}.`),
+              })
+            : ""
+        }
+      </div>
+    </div>
+  `;
+}
+
+function personFinancialPeriodSelectorMarkup(years, activePeriod, hasTaxData) {
+  const yearButtons = safeArray(years)
+    .map((year) => {
+      const period = `year:${year}`;
+      const active = activePeriod === period;
+      return `
+        <button
+          class="company-toggle-button${active ? " is-active" : ""}"
+          type="button"
+          data-person-financial-period-toggle="${escapeHtml(period)}"
+          role="tab"
+          aria-selected="${active ? "true" : "false"}"
+        >
+          ${escapeHtml(String(year))}
+        </button>
+      `;
+    })
+    .join("");
+
+  const taxButtons = hasTaxData
+    ? `
+      <button
+        class="company-toggle-button${activePeriod === "last-quarter" ? " is-active" : ""}"
+        type="button"
+        data-person-financial-period-toggle="last-quarter"
+        role="tab"
+        aria-selected="${activePeriod === "last-quarter" ? "true" : "false"}"
+      >
+        Last quarter
+      </button>
+      <button
+        class="company-toggle-button${activePeriod === "last-4-quarters" ? " is-active" : ""}"
+        type="button"
+        data-person-financial-period-toggle="last-4-quarters"
+        role="tab"
+        aria-selected="${activePeriod === "last-4-quarters" ? "true" : "false"}"
+      >
+        Last 4 quarters
+      </button>
+    `
+    : "";
+
+  if (!yearButtons && !taxButtons) return "";
+
+  return `
+    <div class="company-financial-period-nav person-financial-period-nav" role="tablist" aria-label="Person financial period selection">
+      ${yearButtons}
+      ${taxButtons}
+    </div>
   `;
 }
 
@@ -667,24 +1093,127 @@ function buildSummary(person) {
   return `${bits.join(" • ")}. Person intelligence profile built from ContactPit person, company, contact, and tax data.`;
 }
 
+function buildOverviewPanelMarkup({ person, companies }) {
+  return `
+    <section class="company-tab-panel company-overview-layout is-active" id="person-overview" data-person-tab-panel="overview">
+      <div class="company-section-content">
+        <div class="company-subsection-stack">
+          <section class="company-subsection-grid">
+            <div class="company-subsection-copy">
+              <p class="company-section-eyebrow">Overview</p>
+              <h3>Roles in companies</h3>
+              <p>All linked company roles stay grouped in the first overview section.</p>
+            </div>
+            <article class="company-section-card">
+              ${
+                companies.length
+                  ? `<div class="person-company-list">${companies.map((company) => companyCardMarkup(company)).join("")}</div>`
+                  : '<p class="company-empty-copy">No linked companies are available for this person.</p>'
+              }
+            </article>
+          </section>
+
+          <section class="company-subsection-grid">
+            <div class="company-subsection-copy">
+              <p class="company-section-eyebrow">Certificates</p>
+              <h3>Competence certificates</h3>
+              <p>Professional competence certificates are shown as their own overview section.</p>
+            </div>
+            ${certificateCard(
+              "Competence certificates",
+              person?.kutsetunnistused,
+              (item) => textOrNull(item?.professional_standard) || textOrNull(item?.professionalStandard) || "Unknown certificate"
+            )}
+          </section>
+
+          <section class="company-subsection-grid">
+            <div class="company-subsection-copy">
+              <p class="company-section-eyebrow">Certificates</p>
+              <h3>Authorization certificates</h3>
+              <p>Authorization certificates are separated into the third overview section.</p>
+            </div>
+            ${certificateCard(
+              "Authorization certificates",
+              person?.padevustunnistused,
+              (item) => textOrNull(item?.registration_number) || textOrNull(item?.registrationNumber) || "Unknown certificate"
+            )}
+          </section>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function buildLocationsPanelMarkup({ locations }) {
+  return `
+    <section class="company-tab-panel company-location-layout" id="person-locations" data-person-tab-panel="locations">
+      <div class="company-section-content">
+        <div class="company-subsection-stack">
+          <section class="company-subsection-grid">
+            <div class="company-subsection-copy">
+              <p class="company-section-eyebrow">Locations</p>
+              <h3>Associated company locations</h3>
+              <p>The locations tab plots linked company coordinates on a shared map and keeps the associated companies visible beneath it.</p>
+            </div>
+            <article class="company-section-card">
+              <div class="company-section-card-head">
+                <div>
+                  <p class="company-card-eyebrow">Map</p>
+                  <h3>Known company coordinates</h3>
+                </div>
+              </div>
+              ${locationMapMarkup(locations)}
+            </article>
+          </section>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function buildFinancialPanelMarkup({ person, companiesData, activeFinancialPeriod }) {
+  const years = personFinancialYears(companiesData);
+  const hasTaxData = personHasTaxInformation(companiesData);
+  const periodsMarkup = [
+    ...years.map((year) => buildAnnualFinancialPanel(person, companiesData, year, activeFinancialPeriod)),
+    ...(hasTaxData
+      ? [
+          buildTaxFinancialPanel(person, companiesData, "last-quarter", activeFinancialPeriod),
+          buildTaxFinancialPanel(person, companiesData, "last-4-quarters", activeFinancialPeriod),
+        ]
+      : []),
+  ].join("");
+
+  return `
+    <section class="company-tab-panel company-financial-layout person-financial-layout" id="person-financial" data-person-tab-panel="financial">
+      <div class="company-section-content company-financial-shell person-financial-shell">
+        ${
+          years.length || hasTaxData
+            ? `
+              <div class="company-financial-content-stack">
+                ${periodsMarkup}
+              </div>
+            `
+            : '<article class="company-section-card"><p class="company-empty-copy">No company tax or financial records are available for this person.</p></article>'
+        }
+      </div>
+    </section>
+  `;
+}
+
 function buildPersonMarkup(person, slug) {
   const fullName = [textOrNull(person?.first_name), textOrNull(person?.last_name)].filter(Boolean).join(" ") || "Unknown person";
   const legalStatus = legalStatusMeta(person?.legal_status);
   const overviewFlag = countryFlagEmoji(person?.country_code);
-  const addresses = uniqueAddresses(person?.companies_data);
+  const locations = uniqueCompanyLocations(person);
   const companies = safeArray(person?.companies);
   const companiesData = safeArray(person?.companies_data);
-  const emailContact = safeArray(person?.contacts).find(
-    (contact) => String(contact?.type || "").toUpperCase() === "EMAIL" && textOrNull(contact?.value)
-  );
-  const phoneContact = safeArray(person?.contacts).find(
-    (contact) =>
-      ["PHONE", "MOBILE", "MOB", "CELL", "CELLPHONE", "MOBILE_PHONE"].includes(String(contact?.type || "").toUpperCase()) &&
-      textOrNull(contact?.value)
-  );
+  const activeFinancialPeriod = personFinancialInitialPeriod(companiesData);
+  const emailContact = firstContact(person?.contacts, ["EMAIL"]);
+  const phoneContact = firstContact(person?.contacts, ["MOBILE", "MOB", "PHONE", "CELL", "CELLPHONE", "MOBILE_PHONE"]);
 
   return `
-    <div class="company-view person-view" data-person-view>
+    <div class="company-view person-view" data-person-view data-person-tab="overview" data-person-financial-period="${escapeHtml(activeFinancialPeriod)}">
       <section class="company-hero-shell">
         <div class="company-hero-card person-hero-card">
           <div class="company-floating-rail">
@@ -720,7 +1249,7 @@ function buildPersonMarkup(person, slug) {
             </div>
             <div class="company-hero-meta-layout">
               <div class="company-info-grid company-info-grid-hero">
-                ${infoItem("Identification code", person?.identification_code)}
+                ${infoItem("Age", person?.age !== null && person?.age !== undefined ? `${person.age} years` : null)}
                 ${infoItem("Birth date", formatDate(person?.birth_date))}
                 ${infoItem("Legal status", legalStatus.label)}
                 ${infoItem("Country", overviewFlag ? `${overviewFlag} ${person.country_code}` : person?.country_code)}
@@ -731,169 +1260,114 @@ function buildPersonMarkup(person, slug) {
         </div>
       </section>
 
-      <nav class="company-jump-nav person-jump-nav" aria-label="Person section navigation">
-        <a href="#person-overview">Overview</a>
-        <a href="#person-contact">Contact</a>
-        <a href="#person-financial">Tax & financial</a>
+      <nav class="company-jump-nav person-jump-nav" aria-label="Person section navigation" role="tablist">
+        <button class="is-active" type="button" data-person-tab-toggle="overview" role="tab" aria-selected="true">Overview</button>
+        <button type="button" data-person-tab-toggle="financial" role="tab" aria-selected="false">Financial</button>
+        <button type="button" data-person-tab-toggle="locations" role="tab" aria-selected="false">Locations</button>
       </nav>
 
-      <section class="company-section-grid" id="person-overview">
-        <div class="company-section-heading">
-          <p class="company-section-eyebrow">Overview</p>
-          <h2>Identity, companies, and certificates</h2>
-          <p>The web layout keeps the iOS general view structure: core person facts first, then company links and regulated certificates.</p>
-        </div>
-        <div class="company-section-content">
-          <div class="company-grid company-grid-two">
-            <article class="company-section-card">
-              <div class="company-section-card-head">
-                <div>
-                  <p class="company-card-eyebrow">Identity</p>
-                  <h3>Registry snapshot</h3>
-                </div>
-              </div>
-              <div class="company-info-grid">
-                ${infoItem("Identification code", person?.identification_code)}
-                ${infoItem("Legal status", legalStatus.label)}
-                ${infoItem("Birth date", formatDate(person?.birth_date))}
-                ${infoItem("Age", person?.age !== null && person?.age !== undefined ? `${person.age} years` : null)}
-                ${infoItem("Country", overviewFlag ? `${overviewFlag} ${person.country_code}` : person?.country_code)}
-                ${infoItem("Slug", person?.slug || slug)}
-              </div>
-            </article>
-
-            <article class="company-section-card">
-              <div class="company-section-card-head">
-                <div>
-                  <p class="company-card-eyebrow">Engagement</p>
-                  <h3>View and favorite signals</h3>
-                </div>
-              </div>
-              <div class="company-kpi-grid person-kpi-grid">
-                ${metricCard({
-                  label: "Views",
-                  value: formatInteger(person?.total_view_count || 0),
-                  note: "Total recorded profile views",
-                  accent: "is-featured",
-                })}
-                ${metricCard({
-                  label: "Favorites",
-                  value: formatInteger(person?.total_favorite_count || 0),
-                  note: "Total saved counts",
-                })}
-                ${metricCard({
-                  label: "Linked addresses",
-                  value: formatInteger(addresses.length),
-                  note: addresses.length ? "Distinct company addresses" : "No address records available",
-                })}
-              </div>
-            </article>
-
-            <article class="company-section-card company-section-card-span-2">
-              <div class="company-section-card-head">
-                <div>
-                  <p class="company-card-eyebrow">Companies</p>
-                  <h3>Roles across organizations</h3>
-                </div>
-              </div>
-              ${
-                companies.length
-                  ? `<div class="person-company-list">${companies.map((company) => companyCardMarkup(company)).join("")}</div>`
-                  : '<p class="company-empty-copy">No linked companies are available for this person.</p>'
-              }
-            </article>
-
-            ${certificateCard(
-              "Competence certificates",
-              person?.kutsetunnistused,
-              (item) => textOrNull(item?.professional_standard) || textOrNull(item?.professionalStandard) || "Unknown certificate"
-            )}
-
-            ${certificateCard(
-              "Authorization certificates",
-              person?.padevustunnistused,
-              (item) => textOrNull(item?.registration_number) || textOrNull(item?.registrationNumber) || "Unknown certificate"
-            )}
+      ${companiesData.length
+        ? `
+          <div class="company-financial-rail" data-person-financial-rail>
+            ${personFinancialPeriodSelectorMarkup(personFinancialYears(companiesData), activeFinancialPeriod, personHasTaxInformation(companiesData))}
           </div>
-        </div>
-      </section>
+        `
+        : ""}
 
-      <section class="company-section-grid" id="person-contact">
-        <div class="company-section-heading">
-          <p class="company-section-eyebrow">Contact</p>
-          <h2>Direct channels and known operating locations</h2>
-          <p>The contact section mirrors the iOS route by prioritizing direct outreach first, then mapping the addresses connected through linked companies.</p>
-        </div>
-        <div class="company-section-content">
-          <div class="company-grid company-grid-two">
-            <article class="company-section-card">
-              <div class="company-section-card-head">
-                <div>
-                  <p class="company-card-eyebrow">Direct contact</p>
-                  <h3>Email, phone, and public channels</h3>
-                </div>
-              </div>
-              <div class="company-contact-grid">
-                ${contactActionsMarkup(person?.contacts)}
-              </div>
-            </article>
-
-            <article class="company-section-card">
-              <div class="company-section-card-head">
-                <div>
-                  <p class="company-card-eyebrow">Coverage</p>
-                  <h3>Location footprint</h3>
-                </div>
-              </div>
-              <div class="company-info-grid">
-                ${infoItem("Distinct addresses", addresses.length ? String(addresses.length) : null)}
-                ${infoItem(
-                  "Counties",
-                  Array.from(new Set(addresses.map((address) => textOrNull(address?.county)).filter(Boolean))).join(", ")
-                )}
-                ${infoItem("Linked companies", companies.length ? String(companies.length) : null)}
-                ${infoItem(
-                  "Has direct contact",
-                  safeArray(person?.contacts).some((contact) => textOrNull(contact?.value)) ? "Yes" : "No"
-                )}
-              </div>
-            </article>
-
-            <article class="company-section-card company-section-card-span-2">
-              <div class="company-section-card-head">
-                <div>
-                  <p class="company-card-eyebrow">Addresses</p>
-                  <h3>Known company locations</h3>
-                </div>
-              </div>
-              ${
-                addresses.length
-                  ? `<div class="company-tag-grid person-address-grid">${addresses.map((address) => addressCardMarkup(address)).join("")}</div>`
-                  : '<p class="company-empty-copy">No company address records are available for this person.</p>'
-              }
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <section class="company-section-grid" id="person-financial">
-        <div class="company-section-heading">
-          <p class="company-section-eyebrow">Tax & financial</p>
-          <h2>Company-linked turnover, tax, and profitability</h2>
-          <p>This section translates the iOS tax-information tab into website sections: EMTA turnover, tax debt, yearly revenue, and profitability by linked company.</p>
-        </div>
-        <div class="company-section-content">
-          <div class="company-subsection-stack">
-            ${
-              companiesData.length
-                ? companiesData.map((companyData) => buildCompanyFinancialSection(person, companyData)).join("")
-                : '<article class="company-section-card"><p class="company-empty-copy">No company tax or financial records are available for this person.</p></article>'
-            }
-          </div>
-        </div>
-      </section>
+      ${buildOverviewPanelMarkup({ person, companies })}
+      ${buildFinancialPanelMarkup({ person, companiesData, activeFinancialPeriod })}
+      ${buildLocationsPanelMarkup({ locations })}
     </div>
   `;
+}
+
+function setupInteractions() {
+  const shell = document.querySelector("[data-person-view]");
+  if (!shell) return;
+
+  const tabButtons = shell.querySelectorAll("[data-person-tab-toggle]");
+  const tabPanels = shell.querySelectorAll("[data-person-tab-panel]");
+  const financialRail = shell.querySelector("[data-person-financial-rail]");
+  const financialPeriodButtons = shell.querySelectorAll("[data-person-financial-period-toggle]");
+  const financialPeriodPanels = shell.querySelectorAll("[data-person-financial-period-panel]");
+
+  tabButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const tab = button.getAttribute("data-person-tab-toggle");
+      if (!tab) return;
+
+      shell.setAttribute("data-person-tab", tab);
+      tabButtons.forEach((item) => {
+        const active = item === button;
+        item.classList.toggle("is-active", active);
+        item.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      tabPanels.forEach((panel) => {
+        panel.classList.toggle("is-active", panel.getAttribute("data-person-tab-panel") === tab);
+      });
+      if (financialRail) {
+        financialRail.classList.toggle("is-active", tab === "financial");
+      }
+      if (tab === "locations") {
+        void setupAppleLocationMaps(shell);
+      }
+    });
+  });
+  if (financialRail) {
+    financialRail.classList.toggle("is-active", shell.getAttribute("data-person-tab") === "financial");
+  }
+  if (shell.getAttribute("data-person-tab") === "locations") {
+    void setupAppleLocationMaps(shell);
+  }
+
+  financialPeriodButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const period = button.getAttribute("data-person-financial-period-toggle");
+      if (!period) return;
+
+      shell.setAttribute("data-person-financial-period", period);
+      financialPeriodButtons.forEach((item) => {
+        const active = item === button;
+        item.classList.toggle("is-active", active);
+        item.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      financialPeriodPanels.forEach((panel) => {
+        panel.classList.toggle("is-active", panel.getAttribute("data-person-financial-period-panel") === period);
+      });
+    });
+  });
+}
+
+async function setupAppleLocationMaps(scope = document) {
+  const containers = Array.from(scope.querySelectorAll("[data-person-apple-map]")).filter(
+    (container) => !container.hasAttribute("data-person-apple-map-initialized")
+  );
+  if (!containers.length) return;
+
+  try {
+    await loadAppleMapKit();
+  } catch {
+    containers.forEach((container) => {
+      renderFallbackLocationMap(container);
+      container.setAttribute("data-person-apple-map-initialized", "true");
+    });
+    return;
+  }
+
+  containers.forEach((container) => {
+    const raw = container.getAttribute("data-person-apple-map-locations");
+    if (!raw) {
+      renderFallbackLocationMap(container);
+      container.setAttribute("data-person-apple-map-initialized", "true");
+      return;
+    }
+    try {
+      renderAppleLocationMap(container, JSON.parse(raw));
+    } catch {
+      renderFallbackLocationMap(container);
+    }
+    container.setAttribute("data-person-apple-map-initialized", "true");
+  });
 }
 
 async function loadPerson() {
@@ -924,6 +1398,7 @@ async function loadPerson() {
     document.title = `ContactPit | ${fullName}`;
 
     renderState(buildPersonMarkup(person, slug));
+    setupInteractions();
   } catch (error) {
     renderState(`<p class="detail-state">${escapeHtml(error instanceof Error ? error.message : "Failed to load person.")}</p>`);
   }

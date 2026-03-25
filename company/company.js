@@ -3,6 +3,10 @@ import "@phosphor-icons/web/fill";
 const EMAIL_ICON_URL = new URL("../assets/ios/email.svg", import.meta.url).href;
 const PHONE_ICON_URL = new URL("../assets/ios/phone.svg", import.meta.url).href;
 const REGISTER_ICON_URL = new URL("../assets/ios/rik.png", import.meta.url).href;
+const APPLE_MAPS_TOKEN = import.meta.env.VITE_APPLE_MAPS_TOKEN || "";
+const MAP_MARKER_COLOR = "#9422db";
+
+let appleMapKitPromise = null;
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -11,6 +15,15 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+function chevronIcon(direction = "right") {
+  const path = direction === "left" ? "m14 6-6 6 6 6" : "m10 6 6 6-6 6";
+  return `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="${path}" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6"/>
+    </svg>
+  `;
 }
 
 function currentSlug() {
@@ -218,14 +231,107 @@ function buildSummary(company) {
   return `${bits.join(" • ")}. Company intelligence profile built from live ContactPit data.`;
 }
 
-function googleMapsEmbedUrl(coordinates, address) {
-  const latitude = Number(coordinates?.latitude);
-  const longitude = Number(coordinates?.longitude);
-  if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
-    return `https://www.google.com/maps?q=${encodeURIComponent(`${latitude},${longitude}`)}&z=15&output=embed`;
+function normalizeCoordinates(coordinates) {
+  const latitude = numberOrNull(coordinates?.latitude ?? coordinates?.lat);
+  const longitude = numberOrNull(coordinates?.longitude ?? coordinates?.lng ?? coordinates?.lon);
+  if (latitude === null || longitude === null) return null;
+  return { latitude, longitude };
+}
+
+function appleMapsHrefForLocation({ coordinates, address, label }) {
+  const addressText = textOrNull(address);
+  const title = textOrNull(label) || addressText || "Location";
+  const params = new URLSearchParams();
+
+  if (coordinates) {
+    params.set("ll", `${coordinates.latitude},${coordinates.longitude}`);
+    params.set("q", title);
+  } else if (addressText) {
+    params.set("q", addressText);
   }
-  const query = textOrNull(address);
-  return query ? `https://www.google.com/maps?q=${encodeURIComponent(query)}&z=15&output=embed` : null;
+
+  return params.size ? `https://maps.apple.com/?${params.toString()}` : null;
+}
+
+function loadAppleMapKit() {
+  if (!APPLE_MAPS_TOKEN) {
+    return Promise.reject(new Error("Missing Apple Maps token"));
+  }
+  if (window.mapkit?.Map) {
+    return Promise.resolve(window.mapkit);
+  }
+  if (appleMapKitPromise) {
+    return appleMapKitPromise;
+  }
+
+  appleMapKitPromise = new Promise((resolve, reject) => {
+    const callbackName = `contactPitCompanyAppleMapKitInit${Math.random().toString(36).slice(2)}`;
+    const timeoutId = window.setTimeout(() => {
+      cleanup();
+      appleMapKitPromise = null;
+      reject(new Error("Timed out loading Apple MapKit JS"));
+    }, 10000);
+    const cleanup = () => {
+      window.clearTimeout(timeoutId);
+      delete window[callbackName];
+    };
+
+    window[callbackName] = () => {
+      cleanup();
+      resolve(window.mapkit);
+    };
+
+    const script = document.createElement("script");
+    script.src = "https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.core.js";
+    script.async = true;
+    script.crossOrigin = "anonymous";
+    script.dataset.callback = callbackName;
+    script.dataset.libraries = "map,annotations";
+    script.dataset.token = APPLE_MAPS_TOKEN;
+    script.onerror = () => {
+      cleanup();
+      appleMapKitPromise = null;
+      reject(new Error("Failed to load Apple MapKit JS"));
+    };
+    document.head.append(script);
+  });
+
+  return appleMapKitPromise;
+}
+
+function renderCompanyLocationMap(container) {
+  if (!container || !window.mapkit?.Map) return;
+
+  const latitude = numberOrNull(container.getAttribute("data-company-map-lat"));
+  const longitude = numberOrNull(container.getAttribute("data-company-map-lng"));
+  if (latitude === null || longitude === null) return;
+
+  const title = textOrNull(container.getAttribute("data-company-map-title")) || "Company location";
+  const subtitle = textOrNull(container.getAttribute("data-company-map-subtitle")) || "";
+  const { mapkit } = window;
+  const map = new mapkit.Map(container);
+  map.mapType = mapkit.Map.MapTypes.Standard;
+  map.colorScheme = mapkit.Map.ColorSchemes.Light;
+  map.tintColor = "#7a1ce1";
+  const annotation = new mapkit.MarkerAnnotation(new mapkit.Coordinate(latitude, longitude), {
+    title,
+    subtitle,
+    color: MAP_MARKER_COLOR,
+    glyphColor: "#ffffff",
+  });
+
+  map.showItems([annotation]);
+  if (mapkit.CoordinateRegion && mapkit.CoordinateSpan) {
+    map.region = new mapkit.CoordinateRegion(
+      new mapkit.Coordinate(latitude, longitude),
+      new mapkit.CoordinateSpan(0.08, 0.08)
+    );
+  }
+}
+
+function renderCompanyLocationFallback(container) {
+  if (!container) return;
+  container.innerHTML = '<div class="company-map-orb"><span></span><span></span><span></span></div>';
 }
 
 function iconSvg(name) {
@@ -496,41 +602,47 @@ function lineChartMarkup(chartId, mode, points, formatter) {
   return `
     <div class="company-line-chart" data-line-chart="${escapeHtml(chartId)}" data-line-default-period="${escapeHtml(latest.period)}" data-line-default-value="${escapeHtml(formatter(latest.value))}">
       <div class="company-line-chart-canvas">
-        <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true">
-          <defs>
-            <linearGradient id="line-fill-${escapeHtml(chartId)}" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stop-color="rgba(122, 28, 225, 0.38)"></stop>
-              <stop offset="100%" stop-color="rgba(122, 28, 225, 0.02)"></stop>
-            </linearGradient>
-          </defs>
-          <line class="company-line-chart-guide" x1="${latestPoint.x}" x2="${latestPoint.x}" y1="${topPad}" y2="${baselineY}" data-line-guide hidden></line>
-          <path class="company-line-chart-area" d="${escapeHtml(areaPath)}" fill="url(#line-fill-${escapeHtml(chartId)})"></path>
-          <path class="company-line-chart-path" d="${escapeHtml(linePath)}"></path>
+        <div class="company-line-chart-plot">
+          <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true">
+            <defs>
+              <linearGradient id="line-fill-${escapeHtml(chartId)}" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stop-color="rgba(122, 28, 225, 0.38)"></stop>
+                <stop offset="100%" stop-color="rgba(122, 28, 225, 0.02)"></stop>
+              </linearGradient>
+            </defs>
+            <line class="company-line-chart-guide" x1="${latestPoint.x}" x2="${latestPoint.x}" y1="${topPad}" y2="${baselineY}" data-line-guide hidden></line>
+            <path class="company-line-chart-area" d="${escapeHtml(areaPath)}" fill="url(#line-fill-${escapeHtml(chartId)})"></path>
+            <path class="company-line-chart-path" d="${escapeHtml(linePath)}"></path>
+          </svg>
           ${pointsWithCoords
             .map(
               (point) => `
-                <circle class="company-line-chart-dot" cx="${point.x}" cy="${point.y}" r="5"></circle>
+                <span
+                  class="company-line-chart-marker"
+                  aria-hidden="true"
+                  style="left:${((point.x / width) * 100).toFixed(4)}%; top:${((point.y / height) * 100).toFixed(4)}%;"
+                ></span>
               `
             )
             .join("")}
-        </svg>
-        ${pointsWithCoords
-          .map(
-            (point, index) => `
-              <button
-                class="company-line-chart-hit"
-                type="button"
-                data-line-point="${escapeHtml(chartId)}"
-                data-line-period="${escapeHtml(point.period)}"
-                data-line-value="${escapeHtml(formatter(point.value))}"
-                data-line-x="${point.x}"
-                data-line-ratio="${(point.x / width).toFixed(6)}"
-                style="left:${((point.x / width) * 100).toFixed(4)}%; top:${((point.y / height) * 100).toFixed(4)}%;"
-                aria-label="${escapeHtml(`${point.period} ${formatter(point.value)}`)}"
-              ></button>
-            `
-          )
-          .join("")}
+          ${pointsWithCoords
+            .map(
+              (point) => `
+                <button
+                  class="company-line-chart-hit"
+                  type="button"
+                  data-line-point="${escapeHtml(chartId)}"
+                  data-line-period="${escapeHtml(point.period)}"
+                  data-line-value="${escapeHtml(formatter(point.value))}"
+                  data-line-x="${point.x}"
+                  data-line-ratio="${(point.x / width).toFixed(6)}"
+                  style="left:${((point.x / width) * 100).toFixed(4)}%; top:${((point.y / height) * 100).toFixed(4)}%;"
+                  aria-label="${escapeHtml(`${point.period} ${formatter(point.value)}`)}"
+                ></button>
+              `
+            )
+            .join("")}
+        </div>
         <div class="company-line-chart-y-axis">
           ${yTicks
             .map(
@@ -601,6 +713,17 @@ function personName(entry) {
   return fullName || textOrNull(entry?.full_name) || textOrNull(entry?.name) || "Unknown";
 }
 
+function companySlug(name, registryCode) {
+  const normalizedName = String(name || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const normalizedCode = String(registryCode || "").trim();
+  return normalizedName && normalizedCode ? `${normalizedName}-${normalizedCode}` : null;
+}
+
 function personRole(entry) {
   return textOrNull(entry?.role_text) || textOrNull(entry?.role) || textOrNull(entry?.entity_type) || "Person";
 }
@@ -656,10 +779,45 @@ function personFlag(entry) {
   return null;
 }
 
-function canShowPersonChevron(entry) {
+function relationHref(entry) {
   const entityType = String(entry?.entity_type || "").trim().toLowerCase();
+  const explicitSlug = textOrNull(entry?.slug);
   const countryCode = String(entry?.country_code || entry?.foreign_country_code || "").trim().toUpperCase();
-  return entityType === "person" || countryCode === "EST";
+
+  if (entityType === "person") {
+    return explicitSlug ? `/person/${encodeURIComponent(explicitSlug)}` : null;
+  }
+
+  if (entityType === "company") {
+    if (countryCode && countryCode !== "EST") return null;
+    if (explicitSlug) return `/company/${encodeURIComponent(explicitSlug)}`;
+    const fallbackSlug = companySlug(personName(entry), entry?.registry_code);
+    return fallbackSlug ? `/company/${encodeURIComponent(fallbackSlug)}` : null;
+  }
+
+  return null;
+}
+
+function companyCardShell({ entry, content, href }) {
+  if (href) {
+    return `<a class="company-person-card is-navigable" href="${escapeHtml(href)}">${content}</a>`;
+  }
+  return `<article class="company-person-card">${content}</article>`;
+}
+
+function companyEntityCardMarkup({ entry, name, meta, href }) {
+  return companyCardShell({
+    entry,
+    href,
+    content: `
+      <div class="company-person-avatar">${escapeHtml(initials(name))}</div>
+      <div class="company-person-copy">
+        <h3>${escapeHtml(name)}</h3>
+        <p>${escapeHtml(meta)}</p>
+      </div>
+      ${href ? '<span class="company-person-chevron" aria-hidden="true">›</span>' : ""}
+    `,
+  });
 }
 
 function peopleListMarkup(items, emptyLabel) {
@@ -676,18 +834,14 @@ function peopleListMarkup(items, emptyLabel) {
           const meta = [flag, personDateRange(entry)]
             .filter(Boolean)
             .join(" • ");
-          const showChevron = canShowPersonChevron(entry);
+          const href = relationHref(entry);
 
-          return `
-            <article class="company-person-card${showChevron ? " is-navigable" : ""}">
-              <div class="company-person-avatar">${escapeHtml(initials(personName(entry)))}</div>
-              <div class="company-person-copy">
-                <h3>${escapeHtml(personName(entry))}</h3>
-                <p>${escapeHtml(meta || "No additional detail")}</p>
-              </div>
-              ${showChevron ? '<span class="company-person-chevron" aria-hidden="true">›</span>' : ""}
-            </article>
-          `;
+          return companyEntityCardMarkup({
+            entry,
+            name: personName(entry),
+            meta: meta || "No additional detail",
+            href,
+          });
         })
         .join("")}
     </div>
@@ -720,17 +874,13 @@ function shareholderListMarkup(items) {
           if (textOrNull(entry?.entity_type)) {
             parts.push(String(entry.entity_type));
           }
-          const showChevron = canShowPersonChevron(entry);
-          return `
-            <article class="company-person-card${showChevron ? " is-navigable" : ""}">
-              <div class="company-person-avatar">${escapeHtml(initials(name))}</div>
-              <div class="company-person-copy">
-                <h3>${escapeHtml(name)}</h3>
-                <p>${escapeHtml(parts.join(" • ") || "Shareholder")}</p>
-              </div>
-              ${showChevron ? '<span class="company-person-chevron" aria-hidden="true">›</span>' : ""}
-            </article>
-          `;
+          const href = relationHref(entry);
+          return companyEntityCardMarkup({
+            entry,
+            name,
+            meta: parts.join(" • ") || "Shareholder",
+            href,
+          });
         })
         .join("")}
     </div>
@@ -1472,19 +1622,19 @@ function buildFinancialEmtaSectionsMarkup(stats) {
       eyebrow: "EMTA",
       title: "Turnover",
       description: "Quarter-based EMTA turnover history.",
-      content: miniBars("Turnover", metricHistorySeries(stats?.turnover_history, "quarterly"), formatCompactCurrency, "Quarterly"),
+      content: historyChartMarkup("emta-turnover", "Turnover", stats?.turnover_history, formatCompactCurrency),
     }),
     financialSectionMarkup({
       eyebrow: "EMTA",
       title: "Labour taxes",
       description: "Quarter-based labour tax history from EMTA statistics.",
-      content: miniBars("Labour taxes", metricHistorySeries(stats?.labour_taxes_history, "quarterly"), formatCompactCurrency, "Quarterly"),
+      content: historyChartMarkup("emta-labour-taxes", "Labour taxes", stats?.labour_taxes_history, formatCompactCurrency),
     }),
     financialSectionMarkup({
       eyebrow: "EMTA",
       title: "National taxes",
       description: "Quarter-based national tax history from EMTA statistics.",
-      content: miniBars("National taxes", metricHistorySeries(stats?.national_taxes_history, "quarterly"), formatCompactCurrency, "Quarterly"),
+      content: historyChartMarkup("emta-national-taxes", "National taxes", stats?.national_taxes_history, formatCompactCurrency),
     }),
   ].join("");
 }
@@ -1528,9 +1678,9 @@ function pagedDataRowsMarkup(items, mapRow, emptyLabel, pagerId) {
   return `
     <div class="company-paged-list" data-paged-list="${escapeHtml(pagerId)}" data-page-index="0">
       <div class="company-floating-rail company-paged-list-controls">
-        <button class="company-page-button" type="button" data-page-prev="${escapeHtml(pagerId)}" aria-label="Previous page">‹</button>
+        <button class="company-page-button" type="button" data-page-prev="${escapeHtml(pagerId)}" aria-label="Previous page"><span aria-hidden="true">${chevronIcon("left")}</span></button>
         <span class="company-paged-list-status" data-page-status>${escapeHtml(`1 / ${pages.length}`)}</span>
-        <button class="company-page-button" type="button" data-page-next="${escapeHtml(pagerId)}" aria-label="Next page">›</button>
+        <button class="company-page-button" type="button" data-page-next="${escapeHtml(pagerId)}" aria-label="Next page"><span aria-hidden="true">${chevronIcon("right")}</span></button>
       </div>
       ${pages
         .map(
@@ -1559,9 +1709,9 @@ function pagedMarkup(items, renderPage, emptyLabel, pagerId) {
   return `
     <div class="company-paged-list" data-paged-list="${escapeHtml(pagerId)}" data-page-index="0">
       <div class="company-floating-rail company-paged-list-controls">
-        <button class="company-page-button" type="button" data-page-prev="${escapeHtml(pagerId)}" aria-label="Previous page">‹</button>
+        <button class="company-page-button" type="button" data-page-prev="${escapeHtml(pagerId)}" aria-label="Previous page"><span aria-hidden="true">${chevronIcon("left")}</span></button>
         <span class="company-paged-list-status" data-page-status>${escapeHtml(`1 / ${pages.length}`)}</span>
-        <button class="company-page-button" type="button" data-page-next="${escapeHtml(pagerId)}" aria-label="Next page">›</button>
+        <button class="company-page-button" type="button" data-page-next="${escapeHtml(pagerId)}" aria-label="Next page"><span aria-hidden="true">${chevronIcon("right")}</span></button>
       </div>
       ${pages
         .map(
@@ -1783,7 +1933,12 @@ function shareholdingsMarkup(items, emptyLabel) {
 function locationMarkup(company) {
   const newestAddress = company?.newest_address || {};
   const fullAddress = textOrNull(newestAddress.address_long) || textOrNull(newestAddress.address);
-  const mapUrl = googleMapsEmbedUrl(newestAddress.coordinates, fullAddress);
+  const coordinates = normalizeCoordinates(newestAddress.coordinates);
+  const mapsHref = appleMapsHrefForLocation({
+    coordinates,
+    address: fullAddress,
+    label: textOrNull(company?.name) || "Company location",
+  });
   const fields = [
     ["Address", textOrNull(newestAddress.address)],
     ["County", textOrNull(newestAddress.county)],
@@ -1797,26 +1952,40 @@ function locationMarkup(company) {
     <div class="company-location-stack">
       <div class="company-map-embed-shell company-location-map">
         ${
-          mapUrl
-            ? `<iframe class="company-map-embed" src="${escapeHtml(mapUrl)}" title="Company location map" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>`
+          coordinates && APPLE_MAPS_TOKEN
+            ? `
+              <div
+                class="company-map-canvas"
+                data-company-apple-map
+                data-company-map-lat="${escapeHtml(String(coordinates.latitude))}"
+                data-company-map-lng="${escapeHtml(String(coordinates.longitude))}"
+                data-company-map-title="${escapeHtml(textOrNull(company?.name) || "Company location")}"
+                data-company-map-subtitle="${escapeHtml(fullAddress || "")}"
+              ></div>
+            `
             : `<div class="company-map-orb"><span></span><span></span><span></span></div>`
         }
       </div>
       ${
-        fields.length
+        fields.length || mapsHref
           ? `
-            <div class="company-info-grid company-location-grid">
-              ${fields
-                .map(
-                  ([label, value]) => `
-                    <div class="company-info-item">
-                      <p class="company-info-label">${escapeHtml(label)}</p>
-                      <p class="company-info-value">${escapeHtml(value)}</p>
-                    </div>
-                  `
-                )
-                .join("")}
-            </div>
+            ${fields.length
+              ? `
+                <div class="company-info-grid company-location-grid">
+                  ${fields
+                    .map(
+                      ([label, value]) => `
+                        <div class="company-info-item">
+                          <p class="company-info-label">${escapeHtml(label)}</p>
+                          <p class="company-info-value">${escapeHtml(value)}</p>
+                        </div>
+                      `
+                    )
+                    .join("")}
+                </div>
+              `
+              : ""}
+            ${mapsHref ? `<a class="company-location-link" href="${escapeHtml(mapsHref)}" target="_blank" rel="noreferrer">Open in Maps</a>` : ""}
           `
           : '<p class="company-empty-copy">No location details are available for this company.</p>'
       }
@@ -2115,6 +2284,14 @@ function buildPage(payload, slug) {
         <button type="button" data-company-tab-toggle="location" role="tab" aria-selected="false">Location</button>
       </nav>
 
+      ${availableFinancialYears.length || message.statistics
+        ? `
+          <div class="company-financial-rail" data-company-financial-rail>
+            ${financialPeriodSelectorMarkup(availableFinancialYears, activeFinancialPeriod, Boolean(message.statistics))}
+          </div>
+        `
+        : ""}
+
       <section class="company-tab-panel company-overview-layout is-active" id="company-overview" data-company-tab-panel="overview">
         <div class="company-section-content">
           <div class="company-subsection-stack">
@@ -2132,14 +2309,15 @@ function buildPage(payload, slug) {
       </section>
 
       <section class="company-tab-panel company-financial-layout" id="company-financial" data-company-tab-panel="financial">
-        <div class="company-section-content">
-          ${financialPeriodSelectorMarkup(availableFinancialYears, activeFinancialPeriod, Boolean(message.statistics))}
+        <div class="company-section-content company-financial-shell">
           <div class="company-subsection-stack">
             ${availableFinancialYears
               .map(
                 (year) => `
                   <div class="company-financial-period-panel${activeFinancialPeriod === String(year) ? " is-active" : ""}" data-financial-period-panel="${escapeHtml(String(year))}">
-                    ${buildFinancialYearSectionsMarkup(message, legends, year)}
+                    <div class="company-subsection-stack">
+                      ${buildFinancialYearSectionsMarkup(message, legends, year)}
+                    </div>
                   </div>
                 `
               )
@@ -2147,7 +2325,9 @@ function buildPage(payload, slug) {
             ${message.statistics
               ? `
                 <div class="company-financial-period-panel${activeFinancialPeriod === "emta" ? " is-active" : ""}" data-financial-period-panel="emta">
-                  ${buildFinancialEmtaSectionsMarkup(stats)}
+                  <div class="company-subsection-stack">
+                    ${buildFinancialEmtaSectionsMarkup(stats)}
+                  </div>
                 </div>
               `
               : ""}
@@ -2197,6 +2377,7 @@ function setupInteractions(payload) {
   const stats = payload?.message?.statistics || {};
   const tabButtons = shell.querySelectorAll("[data-company-tab-toggle]");
   const tabPanels = shell.querySelectorAll("[data-company-tab-panel]");
+  const financialRail = shell.querySelector("[data-company-financial-rail]");
   tabButtons.forEach((button) => {
     button.addEventListener("click", () => {
       const tab = button.getAttribute("data-company-tab-toggle");
@@ -2210,8 +2391,20 @@ function setupInteractions(payload) {
       tabPanels.forEach((panel) => {
         panel.classList.toggle("is-active", panel.getAttribute("data-company-tab-panel") === tab);
       });
+      if (financialRail) {
+        financialRail.classList.toggle("is-active", tab === "financial");
+      }
+      if (tab === "location") {
+        void setupCompanyLocationMaps(shell);
+      }
     });
   });
+  if (financialRail) {
+    financialRail.classList.toggle("is-active", shell.getAttribute("data-company-tab") === "financial");
+  }
+  if (shell.getAttribute("data-company-tab") === "location") {
+    void setupCompanyLocationMaps(shell);
+  }
 
   const financialPeriodButtons = shell.querySelectorAll("[data-financial-period-toggle]");
   const financialPeriodPanels = shell.querySelectorAll("[data-financial-period-panel]");
@@ -2300,7 +2493,7 @@ function setupInteractions(payload) {
     const valueNode = summaryNode?.querySelector("[data-line-summary-value]") || null;
     const periodNode = summaryNode?.querySelector("[data-line-summary-period]") || null;
     const guideNode = chartNode.querySelector("[data-line-guide]");
-    const canvasNode = chartNode.querySelector(".company-line-chart-canvas");
+    const plotNode = chartNode.querySelector(".company-line-chart-plot");
     const defaultValue = chartNode.getAttribute("data-line-default-value") || "";
     const defaultPeriod = chartNode.getAttribute("data-line-default-period") || "";
     const points = Array.from(chartNode.querySelectorAll("[data-line-point]"));
@@ -2359,20 +2552,43 @@ function setupInteractions(payload) {
       });
     });
 
-    canvasNode?.addEventListener("mousemove", (event) => {
-      const rect = canvasNode.getBoundingClientRect();
+    plotNode?.addEventListener("mousemove", (event) => {
+      const rect = plotNode.getBoundingClientRect();
       if (!rect.width) return;
-      const axisWidth = 72;
-      const plotWidth = Math.max(rect.width - axisWidth, 1);
-      const offsetX = Math.max(0, Math.min(plotWidth, event.clientX - rect.left));
-      const ratio = offsetX / plotWidth;
+      const offsetX = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
+      const ratio = offsetX / rect.width;
       activatePoint(nearestPointForRatio(ratio));
     });
-    canvasNode?.addEventListener("mouseleave", () => {
+    plotNode?.addEventListener("mouseleave", () => {
       resetPoint();
     });
   });
+}
 
+async function setupCompanyLocationMaps(scope = document) {
+  const containers = Array.from(scope.querySelectorAll("[data-company-apple-map]")).filter(
+    (container) => !container.hasAttribute("data-company-apple-map-initialized")
+  );
+  if (!containers.length) return;
+
+  try {
+    await loadAppleMapKit();
+  } catch {
+    containers.forEach((container) => {
+      renderCompanyLocationFallback(container);
+      container.setAttribute("data-company-apple-map-initialized", "true");
+    });
+    return;
+  }
+
+  containers.forEach((container) => {
+    try {
+      renderCompanyLocationMap(container);
+    } catch {
+      renderCompanyLocationFallback(container);
+    }
+    container.setAttribute("data-company-apple-map-initialized", "true");
+  });
 }
 
 async function loadCompany() {

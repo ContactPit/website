@@ -44,13 +44,13 @@ This repository now contains a static landing-page implementation plus the longe
   Static route shell for `/company/:slug`, rendering the web company intelligence view from the slug-based API fetch.
 
 - `company/company.js`
-  Client-side controller for the company intelligence route, including overview, financial pulse, contacts, and people modules.
+  Client-side controller for the company intelligence route, including overview, financial pulse, people, and location modules. The location tab can lazy-load Apple MapKit JS when `VITE_APPLE_MAPS_TOKEN` is configured.
 
 - `person/index.html`
   Static route shell for `/person/:slug`, rendering the web person intelligence view from the slug-based API fetch.
 
 - `person/person.js`
-  Client-side controller for the person intelligence route, including overview, contact, certificate, and tax-financial sections.
+  Client-side controller for the person intelligence route, including the tabbed overview, financial, and locations experience. The locations tab can lazy-load Apple MapKit JS for multi-marker maps when `VITE_APPLE_MAPS_TOKEN` is configured.
 
 - `assets/ios/**`
   Static asset bundle copied from the iOS asset catalog for logos, county shapes, brand imagery, and optimized responsive page assets such as the about-page founder portrait variants.
