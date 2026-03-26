@@ -331,7 +331,13 @@ function renderCompanyLocationMap(container) {
 
 function renderCompanyLocationFallback(container) {
   if (!container) return;
-  container.innerHTML = '<div class="company-map-orb"><span></span><span></span><span></span></div>';
+  const reason = textOrNull(container.getAttribute("data-company-map-error")) || "Apple map unavailable";
+  container.innerHTML = `
+    <div class="company-map-fallback-debug">
+      <div class="company-map-orb"><span></span><span></span><span></span></div>
+      <p>${escapeHtml(reason)}</p>
+    </div>
+  `;
 }
 
 function iconSvg(name) {
@@ -2573,8 +2579,9 @@ async function setupCompanyLocationMaps(scope = document) {
 
   try {
     await loadAppleMapKit();
-  } catch {
+  } catch (error) {
     containers.forEach((container) => {
+      container.setAttribute("data-company-map-error", error instanceof Error ? error.message : "Apple MapKit load failed");
       renderCompanyLocationFallback(container);
       container.setAttribute("data-company-apple-map-initialized", "true");
     });
@@ -2584,7 +2591,8 @@ async function setupCompanyLocationMaps(scope = document) {
   containers.forEach((container) => {
     try {
       renderCompanyLocationMap(container);
-    } catch {
+    } catch (error) {
+      container.setAttribute("data-company-map-error", error instanceof Error ? error.message : "Apple map render failed");
       renderCompanyLocationFallback(container);
     }
     container.setAttribute("data-company-apple-map-initialized", "true");
