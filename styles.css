@@ -1,6 +1,46 @@
 :root {
-  --font-sans: ui-rounded, "SF Pro Rounded", "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --font-display: ui-rounded, "SF Pro Rounded", "SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-family: ui-rounded, "SF Pro Rounded", "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-sans: var(--font-family);
+  --font-display: var(--font-family);
+  --font-body: var(--font-family);
+  --type-large-title-size: clamp(2.5rem, 5vw, 4.4rem);
+  --type-large-title-weight: 700;
+  --type-large-title-line-height: 0.92;
+  --type-large-title-letter-spacing: 0;
+  --type-title-size: clamp(2.6rem, 5vw, 4.6rem);
+  --type-title-weight: 700;
+  --type-title-line-height: 0.95;
+  --type-title-letter-spacing: 0;
+  --type-title-2-size: clamp(2rem, 3.4vw, 3rem);
+  --type-title-2-weight: 700;
+  --type-title-2-line-height: 1;
+  --type-title-2-letter-spacing: 0;
+  --type-title-3-size: clamp(1.2rem, 2vw, 1.55rem);
+  --type-title-3-weight: 700;
+  --type-title-3-line-height: 1.08;
+  --type-title-3-letter-spacing: 0;
+  --type-body-size: 1rem;
+  --type-body-weight: 500;
+  --type-body-line-height: 1.7;
+  --type-body-letter-spacing: 0;
+  --type-subheadline-size: 1.02rem;
+  --type-subheadline-weight: 500;
+  --type-subheadline-line-height: 1.62;
+  --type-subheadline-letter-spacing: 0;
+  --type-footnote-size: 0.92rem;
+  --type-footnote-weight: 500;
+  --type-footnote-line-height: 1.5;
+  --type-footnote-letter-spacing: 0;
+  --type-caption-size: 0.82rem;
+  --type-caption-weight: 800;
+  --type-caption-line-height: 1.2;
+  --type-caption-letter-spacing: 0.08em;
+  --type-caption-transform: uppercase;
+  --type-caption-2-size: 0.76rem;
+  --type-caption-2-weight: 800;
+  --type-caption-2-line-height: 1.2;
+  --type-caption-2-letter-spacing: 0.12em;
+  --type-caption-2-transform: uppercase;
   --bg: #fcfbff;
   --bg-soft: #f6f1ff;
   --surface: rgba(255, 255, 255, 0.78);
@@ -35,12 +75,135 @@ body {
   margin: 0;
   position: relative;
   isolation: isolate;
-  font-family: var(--font-sans);
+  font-family: var(--font-family);
   color: var(--text);
   background:
     radial-gradient(circle at top left, rgba(184, 40, 205, 0.15), transparent 28%),
     radial-gradient(circle at 88% 8%, rgba(122, 28, 225, 0.14), transparent 22%),
     linear-gradient(180deg, #ffffff 0%, #faf7ff 52%, #ffffff 100%);
+}
+
+.type-large-title,
+.company-title {
+  font-family: var(--font-family);
+  font-size: var(--type-large-title-size);
+  font-weight: var(--type-large-title-weight);
+  line-height: var(--type-large-title-line-height);
+  letter-spacing: var(--type-large-title-letter-spacing);
+}
+
+.type-title,
+.hero h1,
+.page-hero h1,
+.detail-title {
+  font-family: var(--font-family);
+  font-size: var(--type-title-size);
+  font-weight: var(--type-title-weight);
+  line-height: var(--type-title-line-height);
+  letter-spacing: var(--type-title-letter-spacing);
+}
+
+.type-title-2,
+.section-heading h2,
+.filters-banner h2,
+.company-section-heading h2,
+.about-block h2 {
+  font-family: var(--font-family);
+  font-size: var(--type-title-2-size);
+  font-weight: var(--type-title-2-weight);
+  line-height: var(--type-title-2-line-height);
+  letter-spacing: var(--type-title-2-letter-spacing);
+}
+
+.type-title-3,
+.board-title,
+.empty-state h3,
+.company-panel-head h2,
+.company-section-card-head h3,
+.company-chart-card h3,
+.company-subsection-copy h3,
+.capability-title,
+.footer-kicker {
+  font-family: var(--font-family);
+  font-size: var(--type-title-3-size);
+  font-weight: var(--type-title-3-weight);
+  line-height: var(--type-title-3-line-height);
+  letter-spacing: var(--type-title-3-letter-spacing);
+}
+
+.type-body,
+.footer-column a,
+.footer-column p,
+.footer-copy {
+  font-size: var(--type-body-size);
+  font-weight: var(--type-body-weight);
+  line-height: var(--type-body-line-height);
+  letter-spacing: var(--type-body-letter-spacing);
+}
+
+.type-subheadline,
+.hero-text,
+.page-hero p,
+.section-heading p,
+.filters-banner p,
+.detail-summary,
+.about-block p,
+.testimonial-quote {
+  font-size: var(--type-subheadline-size);
+  font-weight: var(--type-subheadline-weight);
+  line-height: var(--type-subheadline-line-height);
+  letter-spacing: var(--type-subheadline-letter-spacing);
+}
+
+.type-footnote,
+.filters-summary-meta,
+.hero-search-result-meta,
+.company-kpi-note,
+.company-data-row-copy p,
+.company-map-fallback-debug p,
+.company-tag-meta,
+.testimonial-role {
+  font-size: var(--type-footnote-size);
+  font-weight: var(--type-footnote-weight);
+  line-height: var(--type-footnote-line-height);
+  letter-spacing: var(--type-footnote-letter-spacing);
+}
+
+.type-caption,
+.eyebrow,
+.filters-summary-label,
+.command-topline,
+.result-label,
+.panel-title,
+.board-kicker,
+.count-label,
+.detail-eyebrow,
+.detail-metadata-label,
+.company-info-label,
+.company-card-eyebrow,
+.company-kpi-label,
+.company-section-eyebrow,
+.footer-column h3 {
+  font-size: var(--type-caption-size);
+  font-weight: var(--type-caption-weight);
+  line-height: var(--type-caption-line-height);
+  letter-spacing: var(--type-caption-letter-spacing);
+  text-transform: var(--type-caption-transform);
+}
+
+.type-caption-2,
+.type-chip,
+.value-chip,
+.count-chip,
+.item-meta,
+.result-chip,
+.testimonial-stars,
+.person-financial-margin-label {
+  font-size: var(--type-caption-2-size);
+  font-weight: var(--type-caption-2-weight);
+  line-height: var(--type-caption-2-line-height);
+  letter-spacing: var(--type-caption-2-letter-spacing);
+  text-transform: var(--type-caption-2-transform);
 }
 
 body::before {
@@ -115,19 +278,22 @@ img {
 .page-hero h1,
 .board-title,
 .empty-state h3 {
-  font-family: var(--font-display);
+  font-family: var(--font-family);
 }
 
 .brand-text {
-  font-size: 1.375rem;
+  font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: 0;
+  line-height: 1.1;
 }
 
 .main-nav {
   gap: 24px;
   color: var(--text-muted);
-  font-weight: 700;
+  font-size: 0.98rem;
+  font-weight: 500;
+  line-height: 1.2;
   justify-self: center;
 }
 
@@ -161,7 +327,9 @@ img {
 .button,
 .trending-tab {
   border-radius: 999px;
-  font-weight: 600;
+  font-size: var(--type-footnote-size);
+  font-weight: 700;
+  line-height: 1.2;
   transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
 }
 
@@ -225,18 +393,12 @@ img {
 .filters-summary-label {
   margin: 0 0 14px;
   color: var(--brand);
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  font-family: var(--font-display);
+  font-family: var(--font-family);
 }
 
 .hero h1,
 .page-hero h1 {
   margin: 0;
-  line-height: 0.96;
-  letter-spacing: 0;
 }
 
 .page-home .hero h1 {
@@ -310,8 +472,9 @@ img {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.82);
   color: var(--filters-muted);
-  font-size: 0.9rem;
-  font-weight: 700;
+  font-size: var(--type-footnote-size);
+  font-weight: 500;
+  line-height: var(--type-footnote-line-height);
 }
 
 .filters-summary-card {
@@ -335,19 +498,21 @@ img {
 .micro-label {
   margin: 0;
   color: var(--filters-muted);
-  font-size: 0.9rem;
+  font-size: var(--type-footnote-size);
   font-weight: 500;
-  letter-spacing: 0;
+  line-height: var(--type-footnote-line-height);
+  letter-spacing: var(--type-footnote-letter-spacing);
   text-transform: none;
 }
 
 .filters-summary-value {
   margin-top: 6px;
   color: var(--filters-ink);
-  font-family: var(--font-display);
-  font-size: clamp(1.55rem, 2.1vw, 2.1rem);
-  line-height: 0.9;
-  letter-spacing: 0;
+  font-family: var(--font-family);
+  font-size: var(--type-title-3-size);
+  font-weight: var(--type-title-3-weight);
+  line-height: 1;
+  letter-spacing: var(--type-title-3-letter-spacing);
 }
 
 .filters-summary-meta {
@@ -496,18 +661,19 @@ img {
 .filters-intro-copy h1 {
   margin: 0;
   max-width: none;
-  font-family: var(--font-display);
-  font-size: clamp(1.55rem, 2.2vw, 2rem);
-  line-height: 0.96;
-  letter-spacing: 0;
+  font-family: var(--font-family);
+  font-size: var(--type-title-3-size);
+  font-weight: var(--type-title-3-weight);
+  line-height: 1;
+  letter-spacing: var(--type-title-3-letter-spacing);
   white-space: nowrap;
 }
 
 .filters-intro-copy p:not(.eyebrow) {
   max-width: 52ch;
   color: var(--filters-muted);
-  font-size: 0.93rem;
-  line-height: 1.4;
+  font-size: var(--type-footnote-size);
+  line-height: 1.5;
 }
 
 .filters-section {
@@ -529,7 +695,10 @@ img {
 .mini-head h4 {
   margin: 0;
   color: var(--filters-ink);
-  font-family: var(--font-display);
+  font-family: var(--font-family);
+  font-size: var(--type-title-3-size);
+  font-weight: var(--type-title-3-weight);
+  line-height: 1.08;
   letter-spacing: 0;
 }
 
@@ -655,7 +824,7 @@ img {
   border-radius: 999px;
   background: transparent;
   color: var(--filters-muted);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .segmented button.is-active {
@@ -915,6 +1084,11 @@ img {
   max-height: 220px;
 }
 
+#economic-activity-results,
+#operating-licence-results {
+  max-height: 330px;
+}
+
 .result-row {
   display: grid;
   gap: 4px;
@@ -1019,7 +1193,7 @@ img {
   }
 
   .filters-hero-copy h1 {
-    font-size: clamp(2.2rem, 10vw, 3.4rem);
+    font-size: clamp(2.3rem, 10vw, 3.1rem);
   }
 
   .segmented {
@@ -1028,12 +1202,10 @@ img {
 }
 
 .hero h1 {
-  font-size: clamp(3rem, 6vw, 5.6rem);
   max-width: 14ch;
 }
 
 .page-hero h1 {
-  font-size: clamp(2.6rem, 5vw, 4.6rem);
   max-width: 13ch;
 }
 
@@ -1054,7 +1226,6 @@ img {
 .page-hero p {
   max-width: 64ch;
   margin: 24px 0 0;
-  font-size: 1.02rem;
 }
 
 .trend-card,
@@ -1086,9 +1257,7 @@ img {
 .panel-title,
 .board-kicker,
 .count-label {
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  line-height: 1.2;
 }
 
 .command-topline {
@@ -1120,7 +1289,7 @@ img {
 
 .search-placeholder {
   color: var(--text-muted);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .hero-search-form {
@@ -1157,14 +1326,13 @@ img {
   background: transparent;
   color: var(--text);
   font: inherit;
-  font-size: 1rem;
   font-weight: 700;
   padding: 0;
 }
 
 .hero-search-input::placeholder {
   color: var(--text-muted);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .hero-search-status {
@@ -1180,9 +1348,10 @@ img {
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 18px 32px rgba(74, 32, 119, 0.1);
   color: var(--text-muted);
-  font-size: 0.82rem;
-  font-weight: 700;
-  line-height: 1.2;
+  font-size: var(--type-caption-size);
+  font-weight: var(--type-caption-weight);
+  line-height: var(--type-caption-line-height);
+  letter-spacing: var(--type-caption-letter-spacing);
   white-space: nowrap;
 }
 
@@ -1236,7 +1405,7 @@ img {
   border-radius: 16px;
   background: rgba(122, 28, 225, 0.04);
   color: var(--text-muted);
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.45;
 }
 
@@ -1298,9 +1467,9 @@ img {
 
 .hero-search-result-title {
   margin: 0;
-  font-size: 0.98rem;
+  font-size: var(--type-footnote-size);
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.3;
 }
 
 .hero-search-result-meta {
@@ -1338,18 +1507,10 @@ img {
 .detail-eyebrow {
   margin: 0;
   color: var(--brand-dark);
-  font-size: 0.8rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 .detail-title {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: clamp(2.4rem, 6vw, 4.6rem);
-  line-height: 0.95;
-  letter-spacing: 0;
 }
 
 .detail-summary {
@@ -1375,16 +1536,12 @@ img {
 .detail-metadata-label {
   margin: 0 0 8px;
   color: var(--text-muted);
-  font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .detail-metadata-value {
   margin: 0;
   color: var(--text);
-  font-size: clamp(1.2rem, 3vw, 1.7rem);
+  font-size: var(--type-title-3-size);
   font-weight: 800;
   line-height: 1.2;
   word-break: break-word;
@@ -1531,7 +1688,7 @@ img {
   align-items: center;
   justify-content: center;
   color: #fff;
-  font-family: var(--font-display);
+  font-family: var(--font-family);
   font-weight: 700;
   letter-spacing: 0;
   background: linear-gradient(145deg, var(--brand-dark), var(--brand), var(--brand-bright));
@@ -1547,10 +1704,6 @@ img {
 
 .company-title {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: clamp(2.5rem, 5vw, 4.4rem);
-  line-height: 0.92;
-  letter-spacing: 0;
 }
 
 .company-title-meta,
@@ -1575,8 +1728,9 @@ img {
   min-height: 38px;
   padding: 0 14px;
   border-radius: 999px;
-  font-size: 0.92rem;
+  font-size: var(--type-footnote-size);
   font-weight: 700;
+  line-height: 1.2;
 }
 
 .company-status-badge {
@@ -1836,9 +1990,6 @@ img {
 .company-section-card-head h3,
 .company-chart-card h3 {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: clamp(1.2rem, 2vw, 1.55rem);
-  letter-spacing: 0;
 }
 
 .company-panel-sheen {
@@ -1873,10 +2024,6 @@ img {
 .company-info-label,
 .company-card-eyebrow {
   margin: 0;
-  font-size: 0.8rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .company-info-value,
@@ -1919,18 +2066,15 @@ img {
 
 .company-kpi-label {
   color: var(--text-muted);
-  font-size: 0.76rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .company-kpi-value {
   margin-top: 8px;
-  font-family: var(--font-display);
-  font-size: clamp(1.22rem, 2vw, 1.72rem);
-  line-height: 0.98;
-  letter-spacing: 0;
+  font-family: var(--font-family);
+  font-size: var(--type-title-3-size);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: var(--type-title-3-letter-spacing);
 }
 
 .company-kpi-note {
@@ -1959,7 +2103,8 @@ img {
   padding: 0 16px;
   border-radius: 999px;
   color: var(--text-muted);
-  font-weight: 600;
+  font-size: var(--type-footnote-size);
+  font-weight: 500;
   transition: transform 180ms ease, color 180ms ease, background 180ms ease;
 }
 
@@ -1975,7 +2120,8 @@ img {
   border-radius: 999px;
   color: var(--text-muted);
   font: inherit;
-  font-weight: 600;
+  font-size: var(--type-footnote-size);
+  font-weight: 500;
   background: transparent;
   transition: transform 180ms ease, color 180ms ease, background 180ms ease, box-shadow 180ms ease;
 }
@@ -2065,19 +2211,11 @@ img {
 .company-section-eyebrow {
   margin: 0;
   color: var(--brand);
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  font-family: var(--font-display);
+  font-family: var(--font-family);
 }
 
 .company-section-heading h2 {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: clamp(1.8rem, 3vw, 2.7rem);
-  line-height: 0.98;
-  letter-spacing: 0;
 }
 
 .company-section-heading p {
@@ -2144,8 +2282,9 @@ img {
 }
 
 .company-rank-pill strong {
-  font-family: var(--font-display);
-  font-size: 1rem;
+  font-family: var(--font-family);
+  font-size: var(--type-footnote-size);
+  font-weight: 700;
   letter-spacing: 0;
 }
 
@@ -2250,8 +2389,8 @@ img {
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.82);
   color: var(--text-muted);
-  font-family: var(--font-display);
-  font-weight: 600;
+  font-family: var(--font-family);
+  font-weight: 500;
   letter-spacing: 0;
   cursor: pointer;
   transition: transform 180ms ease, box-shadow 180ms ease, color 180ms ease, background 180ms ease;
@@ -2325,10 +2464,6 @@ img {
 }
 
 .company-subsection-copy h3 {
-  font-family: var(--font-display);
-  font-size: clamp(1.35rem, 2.2vw, 1.9rem);
-  line-height: 1;
-  letter-spacing: 0;
 }
 
 .company-subsection-copy p {
@@ -2383,8 +2518,9 @@ img {
 
 .company-data-row strong {
   flex: 0 0 auto;
-  font-family: var(--font-display);
-  font-size: 1rem;
+  font-family: var(--font-family);
+  font-size: var(--type-footnote-size);
+  font-weight: 700;
   letter-spacing: 0;
   text-align: right;
 }
@@ -2538,8 +2674,9 @@ img {
 
 .company-trend-value {
   color: var(--text);
-  font-family: var(--font-display);
-  font-size: 1rem;
+  font-family: var(--font-family);
+  font-size: var(--type-footnote-size);
+  font-weight: 700;
   letter-spacing: 0;
 }
 
@@ -2593,7 +2730,9 @@ img {
 .company-paged-list-status {
   min-width: 48px;
   color: var(--text-muted);
-  font-weight: 700;
+  font-size: var(--type-footnote-size);
+  font-weight: 500;
+  line-height: var(--type-footnote-line-height);
   text-align: center;
 }
 
@@ -2661,8 +2800,8 @@ img {
 
 .company-leaderboard-rank {
   color: var(--brand);
-  font-family: var(--font-display);
-  font-size: 1rem;
+  font-family: var(--font-family);
+  font-size: var(--type-footnote-size);
   font-weight: 800;
   letter-spacing: 0;
 }
@@ -2675,8 +2814,9 @@ img {
 
 .company-leaderboard-value {
   color: var(--text-muted);
-  font-family: var(--font-display);
-  font-size: 1rem;
+  font-family: var(--font-family);
+  font-size: var(--type-footnote-size);
+  font-weight: 500;
   letter-spacing: 0;
   text-align: right;
 }
@@ -2709,15 +2849,17 @@ img {
 
 .company-line-chart-summary strong {
   color: var(--text);
-  font-family: var(--font-display);
-  font-size: clamp(1.15rem, 2vw, 1.5rem);
+  font-family: var(--font-family);
+  font-size: var(--type-title-3-size);
+  font-weight: 700;
   letter-spacing: 0;
 }
 
 .company-line-chart-summary span {
   color: var(--text-muted);
-  font-size: 0.92rem;
-  font-weight: 600;
+  font-size: var(--type-footnote-size);
+  font-weight: 500;
+  line-height: var(--type-footnote-line-height);
 }
 
 .company-line-chart-canvas {
@@ -2809,8 +2951,9 @@ img {
 
 .company-line-chart-tick span {
   color: var(--text-muted);
-  font-size: 0.92rem;
-  font-weight: 700;
+  font-size: var(--type-footnote-size);
+  font-weight: 500;
+  line-height: var(--type-footnote-line-height);
 }
 
 .company-line-chart-axis.is-quarterly .company-line-chart-tick.is-quarterly.has-label {
@@ -2835,8 +2978,9 @@ img {
 
 .company-line-chart-y-axis span {
   color: var(--text-muted);
-  font-size: 0.92rem;
-  font-weight: 600;
+  font-size: var(--type-footnote-size);
+  font-weight: 500;
+  line-height: var(--type-footnote-line-height);
   white-space: nowrap;
 }
 
@@ -2852,8 +2996,9 @@ img {
 
 .company-chart-period {
   color: var(--text-muted);
-  font-size: 0.8rem;
-  font-weight: 700;
+  font-size: var(--type-caption-size);
+  font-weight: 500;
+  line-height: 1.25;
 }
 
 .company-chart-value {
@@ -2994,17 +3139,15 @@ img {
 }
 
 .company-people-panel .company-person-copy h3 {
-  font-family: var(--font-display);
-  font-size: clamp(1.1rem, 1.45vw, 1.32rem);
+  font-size: var(--type-title-3-size);
   font-weight: 700;
-  letter-spacing: 0;
-  line-height: 1.08;
+  line-height: 1.1;
 }
 
 .company-people-panel .company-person-copy p {
-  font-size: 0.98rem;
+  font-size: var(--type-footnote-size);
   font-weight: 500;
-  line-height: 1.38;
+  line-height: 1.45;
   margin-top: -1px;
 }
 
@@ -3103,9 +3246,6 @@ img {
 
 .company-tax-alert h2 {
   margin-top: 8px;
-  font-family: var(--font-display);
-  font-size: clamp(1.4rem, 2.4vw, 2rem);
-  letter-spacing: 0;
 }
 
 .company-tax-alert p {
@@ -3285,9 +3425,10 @@ img {
 
 .person-financial-summary-value {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: clamp(1.65rem, 2.5vw, 2.4rem);
-  line-height: 0.95;
+  font-family: var(--font-family);
+  font-size: var(--type-title-2-size);
+  font-weight: 700;
+  line-height: 1;
   letter-spacing: 0;
 }
 
@@ -3354,8 +3495,8 @@ img {
 
 .person-financial-pie-hole strong {
   max-width: 120px;
-  font-family: var(--font-display);
-  font-size: 1.18rem;
+  font-family: var(--font-family);
+  font-size: var(--type-title-3-size);
   font-weight: 700;
   line-height: 1.1;
   color: var(--text);
@@ -3406,8 +3547,9 @@ img {
 
 .person-financial-pie-copy strong {
   color: var(--text);
-  font-family: var(--font-display);
-  font-size: 0.96rem;
+  font-family: var(--font-family);
+  font-size: var(--type-footnote-size);
+  font-weight: 700;
 }
 
 .person-financial-pie-company {
@@ -3425,8 +3567,9 @@ img {
 .person-financial-pie-share {
   color: var(--text);
   text-align: right;
-  font-family: var(--font-display);
-  font-size: 0.96rem;
+  font-family: var(--font-family);
+  font-size: var(--type-footnote-size);
+  font-weight: 700;
 }
 
 .company-activity-pie-share {
@@ -3436,9 +3579,9 @@ img {
 
 .company-activity-pie-share span {
   color: var(--text-muted);
-  font-family: var(--font-body);
-  font-size: 0.9rem;
-  font-weight: 700;
+  font-family: var(--font-family);
+  font-size: var(--type-footnote-size);
+  font-weight: 500;
 }
 
 .company-activity-pie-chart .company-paged-list.is-paged .company-paged-list-panel {
@@ -3500,8 +3643,8 @@ img {
 
 .person-financial-pool-chip strong {
   color: var(--text);
-  font-family: var(--font-display);
-  font-size: 0.96rem;
+  font-family: var(--font-family);
+  font-size: var(--type-footnote-size);
   letter-spacing: 0;
 }
 
@@ -3549,10 +3692,6 @@ img {
 
 .person-financial-margin-label {
   color: var(--text-muted);
-  font-size: 0.76rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 
 .person-financial-margin-label:not(.is-company),
@@ -3604,8 +3743,9 @@ img {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.84);
   color: var(--text-muted);
-  font-size: 0.88rem;
-  font-weight: 700;
+  font-size: var(--type-footnote-size);
+  font-weight: 500;
+  line-height: var(--type-footnote-line-height);
   transition: transform 180ms ease, border-color 180ms ease, color 180ms ease;
 }
 
@@ -3629,10 +3769,6 @@ img {
 
 .capability-title {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.8rem;
-  line-height: 1;
-  letter-spacing: 0;
 }
 
 .capability-copy {
@@ -3659,8 +3795,8 @@ img {
 
 .capability-node h3 {
   margin: 0;
-  font-size: 1.1rem;
-  line-height: 1.3;
+  font-size: var(--type-footnote-size);
+  line-height: 1.35;
   letter-spacing: 0;
 }
 
@@ -3690,7 +3826,8 @@ img {
 
 .result-card h3 {
   margin: 6px 0 0;
-  font-size: 1.08rem;
+  font-size: var(--type-title-3-size);
+  line-height: 1.12;
   letter-spacing: 0;
 }
 
@@ -3730,9 +3867,6 @@ img {
 
 .section-heading h2 {
   margin: 0;
-  font-size: clamp(2rem, 3.4vw, 3.4rem);
-  letter-spacing: 0;
-  line-height: 1;
 }
 
 .page-home .section-heading h2 {
@@ -3775,15 +3909,16 @@ img {
 }
 
 .trending-row-label {
-  font-size: 0.96rem;
+  font-size: var(--type-footnote-size);
   font-weight: 800;
   letter-spacing: 0;
 }
 
 .trending-row-copy {
   color: var(--text-muted);
-  font-size: 0.88rem;
-  font-weight: 600;
+  font-size: var(--type-footnote-size);
+  font-weight: 500;
+  line-height: var(--type-footnote-line-height);
 }
 
 .trending-carousel-wrap {
@@ -3796,7 +3931,7 @@ img {
   display: flex;
   gap: 16px;
   width: max-content;
-  animation: testimonial-marquee 52s linear infinite;
+  animation: testimonial-marquee var(--trending-duration, 52s) linear infinite;
 }
 
 .trending-carousel.is-reverse {
@@ -3841,8 +3976,6 @@ img {
   min-height: 32px;
   padding: 0 12px;
   border-radius: 999px;
-  font-size: 0.77rem;
-  font-weight: 800;
 }
 
 .type-chip {
@@ -3860,8 +3993,9 @@ img {
 .trend-name,
 .catalog-name {
   margin: 18px 0 10px;
-  font-size: 1.36rem;
-  line-height: 1.15;
+  font-size: var(--type-title-3-size);
+  font-weight: 700;
+  line-height: 1.12;
   letter-spacing: 0;
 }
 
@@ -3881,9 +4015,9 @@ img {
 .trend-subline {
   margin: 0;
   color: var(--text-muted);
-  font-size: 0.9rem;
-  font-weight: 700;
-  line-height: 1.4;
+  font-size: var(--type-footnote-size);
+  font-weight: 500;
+  line-height: var(--type-footnote-line-height);
 }
 
 .item-meta {
@@ -3896,8 +4030,6 @@ img {
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.78);
   color: var(--brand);
-  font-size: 0.8rem;
-  font-weight: 800;
 }
 
 .leaderboard-grid {
@@ -4042,7 +4174,7 @@ img {
 
 .rank-value {
   color: var(--text-muted);
-  font-weight: 700;
+  font-weight: 500;
   white-space: nowrap;
 }
 
@@ -4227,9 +4359,9 @@ img {
 .county-capital {
   margin: 2px 0 0;
   color: var(--text-muted);
-  font-size: 1.04rem;
-  font-weight: 700;
-  line-height: 1.4;
+  font-size: var(--type-subheadline-size);
+  font-weight: 500;
+  line-height: var(--type-subheadline-line-height);
   padding-bottom: 18px;
 }
 
@@ -4269,8 +4401,9 @@ img {
 .catalog-value {
   margin: 0;
   color: var(--card-value, var(--text));
-  font-size: 1.24rem;
+  font-size: var(--type-title-3-size);
   font-weight: 800;
+  line-height: 1.1;
 }
 
 .catalog-label {
@@ -4292,6 +4425,30 @@ img {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+#parties-grid .catalog-name {
+  font-size: calc(var(--type-title-3-size) - 0.14rem);
+  font-weight: 600;
+  line-height: var(--type-title-3-line-height);
+}
+
+#public-grid .catalog-name {
+  font-size: calc(var(--type-title-3-size) - 0.14rem);
+  font-weight: 600;
+  line-height: var(--type-title-3-line-height);
+}
+
+#parties-grid .catalog-value {
+  font-size: calc(var(--type-title-3-size) - 0.08rem);
+  font-weight: var(--type-title-3-weight);
+  line-height: var(--type-title-3-line-height);
+}
+
+#public-grid .catalog-value {
+  font-size: calc(var(--type-title-3-size) - 0.08rem);
+  font-weight: var(--type-title-3-weight);
+  line-height: var(--type-title-3-line-height);
+}
+
 .testimonials-feature {
   display: grid;
   gap: 0;
@@ -4299,8 +4456,6 @@ img {
 
 .testimonial-stars {
   color: var(--brand);
-  font-size: 0.9rem;
-  letter-spacing: 0.12em;
 }
 
 .testimonial-carousel-wrap {
@@ -4333,8 +4488,9 @@ img {
 .testimonial-quote {
   margin: 0;
   color: var(--text);
-  font-size: 1.05rem;
-  line-height: 1.78;
+  font-size: var(--type-body-size);
+  font-weight: 400;
+  line-height: var(--type-body-line-height);
 }
 
 .testimonial-meta {
@@ -4353,7 +4509,7 @@ img {
   border-radius: 999px;
   background: linear-gradient(135deg, rgba(122, 28, 225, 0.16), rgba(184, 40, 205, 0.22));
   color: var(--brand);
-  font-size: 0.95rem;
+  font-size: var(--type-footnote-size);
   font-weight: 800;
 }
 
@@ -4365,7 +4521,7 @@ img {
 .testimonial-name {
   margin: 0;
   color: var(--text);
-  font-size: 0.95rem;
+  font-size: var(--type-footnote-size);
   font-weight: 800;
 }
 
@@ -4416,9 +4572,6 @@ img {
 
 .footer-kicker {
   margin: 0 0 8px;
-  font-family: var(--font-display);
-  font-size: 1.75rem;
-  letter-spacing: 0;
 }
 
 .footer-copy {
@@ -4435,9 +4588,6 @@ img {
 
 .footer-column h3 {
   margin: 0 0 10px;
-  font-size: 0.95rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   color: rgba(255, 255, 255, 0.62);
 }
 
@@ -4465,8 +4615,6 @@ img {
 
 .empty-state h3 {
   margin: 0 0 8px;
-  font-size: 1.4rem;
-  letter-spacing: 0;
 }
 
 .about-page {
@@ -4514,10 +4662,11 @@ img {
 
 .about-kicker {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.6rem;
+  font-family: var(--font-family);
+  font-size: var(--type-title-3-size);
   font-weight: 700;
   letter-spacing: 0;
+  line-height: 1.08;
 }
 
 .about-founders {
@@ -4527,12 +4676,13 @@ img {
   justify-content: center;
   gap: 8px;
   margin: 0;
-  font-size: 1.02rem;
+  font-size: var(--type-subheadline-size);
   font-weight: 600;
+  line-height: var(--type-subheadline-line-height);
 }
 
 .about-founders-separator {
-  font-family: var(--font-display);
+  font-family: var(--font-family);
   font-size: 1.4rem;
   line-height: 1;
 }
@@ -4585,15 +4735,12 @@ img {
 
 .about-block h2,
 .about-company-mark span {
-  font-family: var(--font-display);
+  font-family: var(--font-family);
 }
 
 .about-block h2 {
   margin: 0 0 18px;
   width: min(100%, 820px);
-  font-size: clamp(2rem, 3.4vw, 3rem);
-  line-height: 1;
-  letter-spacing: 0;
   margin-left: auto;
   margin-right: auto;
 }
@@ -4601,8 +4748,6 @@ img {
 .about-block p {
   margin: 0 0 16px;
   color: var(--text-muted);
-  font-size: 1.02rem;
-  line-height: 1.7;
   max-width: 72ch;
   margin-left: auto;
   margin-right: auto;
@@ -4623,15 +4768,17 @@ img {
 }
 
 .about-company-mark span {
-  font-size: 1.75rem;
+  font-size: var(--type-title-3-size);
   font-weight: 700;
   letter-spacing: 0;
+  line-height: 1.08;
 }
 
 .about-company-footer p {
   margin: 0;
   color: var(--text-muted);
-  font-size: 1rem;
+  font-size: var(--type-footnote-size);
+  line-height: var(--type-footnote-line-height);
 }
 
 @media (max-width: 1100px) {

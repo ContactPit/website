@@ -543,6 +543,32 @@ function renderTrending(data) {
       `;
     })
     .join("");
+
+  syncTrendingMarqueeSpeed(root);
+}
+
+function syncTrendingMarqueeSpeed(root = document) {
+  const carousels = root.querySelectorAll(".trending-carousel");
+  if (!carousels.length) return;
+
+  const PIXELS_PER_SECOND = 45;
+
+  carousels.forEach((carousel) => {
+    const trackWidth = carousel.scrollWidth / 2;
+    if (!trackWidth) return;
+
+    const duration = Math.max(trackWidth / PIXELS_PER_SECOND, 24);
+    carousel.style.setProperty("--trending-duration", `${duration}s`);
+  });
+}
+
+let trendingSpeedSyncBound = false;
+
+function bindTrendingSpeedSync() {
+  if (trendingSpeedSyncBound || typeof window === "undefined") return;
+  trendingSpeedSyncBound = true;
+
+  window.addEventListener("resize", () => syncTrendingMarqueeSpeed());
 }
 
 function renderLeaderboards(data) {
@@ -800,6 +826,7 @@ async function loadHomeData() {
       (payload.catalog || []).find((board) => board.key === "publicly_traded_companies"),
       "public-grid"
     );
+    bindTrendingSpeedSync();
   } catch (error) {
     console.error(error);
   }

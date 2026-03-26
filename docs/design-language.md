@@ -13,17 +13,31 @@ Any task that touches UI, styling, layout, visual presentation, or public-facing
 
 ## Typography
 
-- Primary body font: `Manrope`, sans-serif.
-- Display and headline font: `Space Grotesk`, sans-serif.
-- Apply `Space Grotesk` to brand text, page hero headings, section headings, and other display-level labels.
-- Apply `Manrope` to paragraph copy, navigation, chips, buttons, and data labels.
-- Headline style:
-  - Tight line-height near `1` or below.
-  - Negative tracking around `-0.04em` to `-0.06em`.
-  - Large clamp-based sizing instead of fixed desktop-only values.
-- Body copy style:
-  - Comfortable line-height around `1.65` to `1.7`.
-  - Muted text color instead of pure black for supporting paragraphs.
+- Canonical font stack: San Francisco-style system family via `--font-family` in [`styles.css`](/Users/rasmustauts/website/styles.css).
+- The site no longer relies on external Google-hosted typefaces for its headline/body split.
+- Typography is bounded to a fixed semantic scale. Use only these roles:
+  - `largeTitle`
+  - `title`
+  - `title2`
+  - `title3`
+  - `body`
+  - `subheadline`
+  - `footnote`
+  - `caption`
+  - `caption2`
+- Role rules:
+  - `largeTitle` is reserved only for the company name on `/company/:slug` and the person name on `/person/:slug`.
+  - `title` is the largest non-identity heading and should be used for page hero titles outside company/person identity views.
+  - `title2` is for section-level headings.
+  - `title3` is for card titles, panel titles, and compact heading moments.
+  - `body` is the default paragraph and navigation rhythm.
+  - `subheadline` is for supporting intro copy, summaries, and lead paragraphs.
+  - `footnote` is for secondary metadata and helper copy.
+  - `caption` and `caption2` are for labels, chips, compact metadata, and other utility text.
+- Style rules:
+  - Headings use tight line-height around `1` with neutral tracking.
+  - Body and subheadline roles keep relaxed readability around `1.5` to `1.7`.
+  - Caption roles carry uppercase treatment and stronger tracking for scannable labels.
 
 ## Color Tokens
 
@@ -123,7 +137,7 @@ Usage rules:
 ### Section Headers
 
 - Small uppercase eyebrow in brand purple.
-- Large `Space Grotesk` heading.
+- `title2` heading.
 - Optional muted explanatory paragraph underneath.
 
 ### Cards And Data Blocks
@@ -176,13 +190,13 @@ Usage rules:
 ## Do And Do Not
 
 - Do keep new pages light, polished, and slightly iridescent.
-- Do reuse the existing purple token family and typography pair.
+- Do reuse the existing purple token family and the semantic typography scale.
 - Do use rounded glass-like cards and restrained gradients.
 - Do keep page sections editorial and scannable, not dashboard-dense.
 - Do make one element per section visually dominant.
 - Do not introduce unrelated accent colors as new primaries.
 - Do not default to plain gray borders, square cards, or flat white backgrounds.
-- Do not switch headline fonts or fall back to generic system-font aesthetics.
+- Do not introduce new one-off text sizes outside the approved semantic roles.
 - Do not use dark mode styling unless the route already requires its own sub-theme.
 
 ## Filters Route

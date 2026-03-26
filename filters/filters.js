@@ -61,8 +61,6 @@ const appState = {
   emtakTree: [],
   search: {
     deletionReasons: "",
-    economicActivities: "",
-    operatingLicences: "",
   },
   selection: {
     locationsMode: "include",
@@ -133,10 +131,8 @@ function cacheElements() {
     "years-submitted-grid",
     "years-not-submitted-grid",
     "selected-economic-activities",
-    "economic-activity-search",
     "economic-activity-results",
     "selected-operating-licences",
-    "operating-licence-search",
     "operating-licence-results",
   ];
 
@@ -323,16 +319,6 @@ function handleInput(event) {
     renderDeletionReasonResults();
     return;
   }
-  if (id === "economic-activity-search") {
-    appState.search.economicActivities = value.trim();
-    renderEconomicActivityResults();
-    return;
-  }
-  if (id === "operating-licence-search") {
-    appState.search.operatingLicences = value.trim();
-    renderOperatingLicenceResults();
-    return;
-  }
   scheduleCountRefresh();
 }
 
@@ -489,8 +475,7 @@ function renderDeletionReasonPills() {
 
 function renderEconomicActivityResults() {
   const items = mapLocalizedEntries(appState.legends?.economic_activities || appState.legends?.economicActivities || {});
-  const results = filterBySearch(items, appState.search.economicActivities);
-  el["economic-activity-results"].innerHTML = renderResultButtons(results.slice(0, MAX_FILTER_RESULTS), (item) => ({
+  el["economic-activity-results"].innerHTML = renderResultButtons(items.slice(0, MAX_FILTER_RESULTS), (item) => ({
     label: `<span>${escapeHtml(item.caption || item.label)}</span>`,
     dataset: `data-economic-activity="${escapeAttribute(item.value)}"`,
     active: appState.selection.economicActivities.has(item.value),
@@ -507,8 +492,7 @@ function renderEconomicActivityPills() {
 
 function renderOperatingLicenceResults() {
   const items = mapLocalizedEntries(appState.legends?.operating_licences || appState.legends?.operatingLicences || {});
-  const results = filterBySearch(items, appState.search.operatingLicences);
-  el["operating-licence-results"].innerHTML = renderResultButtons(results.slice(0, MAX_FILTER_RESULTS), (item) => ({
+  el["operating-licence-results"].innerHTML = renderResultButtons(items.slice(0, MAX_FILTER_RESULTS), (item) => ({
     label: `<span>${escapeHtml(item.caption || item.label)}</span>`,
     dataset: `data-operating-licence="${escapeAttribute(item.value)}"`,
     active: appState.selection.operatingLicences.has(item.value),
@@ -997,8 +981,6 @@ function resetAllFilters() {
 
   appState.search = {
     deletionReasons: "",
-    economicActivities: "",
-    operatingLicences: "",
   };
 
   appState.selection.locationKeys.clear();
