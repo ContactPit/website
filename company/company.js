@@ -677,7 +677,7 @@ function lineChartMarkup(chartId, mode, points, formatter) {
 function historyChartMarkup(metricId, title, history, formatter) {
   const annualPoints = metricHistorySeries(history, "annual");
   const quarterlyPoints = metricHistorySeries(history, "quarterly");
-  const defaultMode = annualPoints.length ? "annual" : "quarterly";
+  const defaultMode = quarterlyPoints.length ? "quarterly" : "annual";
   const annualLatest = annualPoints[annualPoints.length - 1];
   const quarterlyLatest = quarterlyPoints[quarterlyPoints.length - 1];
 
@@ -2178,7 +2178,7 @@ function buildPage(payload, slug) {
     },
   ];
 
-  const historyMode = "annual";
+  const historyMode = "quarterly";
   const annualReports = safeArray(message.annual_reports);
   const activeTab = "overview";
   const availableFinancialYears = financialPeriods(message);
