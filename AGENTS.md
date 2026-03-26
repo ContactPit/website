@@ -24,6 +24,7 @@ Use the ContactPit organization context system for cross-repo coordination.
 ## Repo-Specific Working Rules
 
 - Treat this repository as a client application boundary. Keep UI concerns, application state, domain contracts, and transport/integration code separated.
+- Whenever a task touches UI, styling, layout, visual presentation, or public-facing frontend behavior, use [$frontend-design](/Users/rasmustauts/.agents/skills/frontend-design/SKILL.md).
 - Prefer relative `../org-context` references everywhere. Do not introduce absolute org-context paths.
 - If you add a new page, route, API client module, or static asset, update the relevant repository docs in the same change so the documented map stays usable.
 - If a change affects shared messaging, backend contracts, analytics, auth, or lead capture behavior, check the relevant repository entries in `../org-context/repos.md` before finalizing.

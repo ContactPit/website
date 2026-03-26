@@ -15,6 +15,7 @@ Repository-specific notes:
 
 - This repository is the ContactPit company website repository.
 - The repository contains a live static website implementation rooted in `index.html`, `styles.css`, `script.js`, and page-specific HTML entrypoints under top-level route folders.
+- Whenever work touches UI, styling, layout, visual presentation, or public-facing frontend behavior, use [$frontend-design](/Users/rasmustauts/.agents/skills/frontend-design/SKILL.md).
 - Treat `docs/design-language.md` as the canonical visual reference for new public-facing pages. Match the home page's palette, typography, spacing, glass surfaces, and gradient usage unless a route already establishes an intentional variant.
 - Consult `../org-context` before making changes that affect shared branding, public messaging, or integrations with other ContactPit systems.
 - Keep references to organization context relative. Do not use absolute `/Users/...` paths.

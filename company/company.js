@@ -1599,25 +1599,34 @@ function buildFinancialYearSectionsMarkup(message, legends, year) {
     financialSectionMarkup({
       title: "Revenue by activity",
       description: `Revenue split across reported activity codes in ${year}.`,
-      content: dataRowsMarkup(
-        safeArray(revenueByEmtak?.data)
+      content: (() => {
+        const activityRows = safeArray(revenueByEmtak?.data)
           .slice()
           .sort((left, right) => (numberOrNull(right?.revenue_amount) || 0) - (numberOrNull(left?.revenue_amount) || 0))
-          .slice(0, 8)
           .map((entry) => {
             const emtakCode = normalizeEmtakCode(
               pickRecordValue(entry, ["emtak_code", "emtakCode", "activity_code", "activityCode", "Code", "code", "emtak"])
             );
             const activityDescription = pickRecordValue(entry, ["activity_description", "activityDescription"]);
             const resolvedDescription = findEmtakDescription(emtakCode, emtakDescriptions) || activityDescription;
+            const fallbackId = `${resolvedDescription || "activity"}-${numberOrNull(entry?.revenue_amount) || 0}`;
             return {
-              label: resolvedDescription || emtakCode || "Activity",
-              value: formatCompactCurrency(entry?.revenue_amount),
+              id: emtakCode || fallbackId,
+              name: resolvedDescription || emtakCode || "Activity",
               meta: resolvedDescription && emtakCode ? emtakCode : null,
+              value: numberOrNull(entry?.revenue_amount) || 0,
             };
-          }),
-        "No revenue-by-activity data is available for this year."
-      ),
+          })
+          .filter((row) => row.value > 0);
+        const totalActivityRevenue = activityRows.reduce((sum, row) => sum + row.value, 0);
+        return companyActivityPieChartMarkup(
+          activityRows,
+          totalActivityRevenue,
+          formatCompactCurrency(totalActivityRevenue),
+          "No revenue-by-activity data is available for this year.",
+          `company-activity-revenue-${year}`
+        );
+      })(),
     }),
   ].join("");
 }
@@ -1666,6 +1675,270 @@ function dataRowsMarkup(rows, emptyLabel) {
           `
         )
         .join("")}
+    </div>
+  `;
+}
+
+const COMPANY_ACTIVITY_SLICE_COLORS = [
+  "linear-gradient(135deg, #3558d8, #2548c8)",
+  "linear-gradient(135deg, #0f88da, #007bd1)",
+  "linear-gradient(135deg, #15a9b8, #079ea9)",
+  "linear-gradient(135deg, #39b86b, #2ba95d)",
+  "linear-gradient(135deg, #7cc63f, #69b430)",
+  "linear-gradient(135deg, #f2c230, #e6b116)",
+  "linear-gradient(135deg, #f09a2f, #e28718)",
+  "linear-gradient(135deg, #ec5e3f, #df4f2f)",
+  "linear-gradient(135deg, #d9486f, #c63b60)",
+  "linear-gradient(135deg, #8e59c9, #7d49bb)",
+];
+
+const COMPANY_ACTIVITY_SLICE_SOLID_COLORS = ["#2f52d5", "#0b84d8", "#0fa7b7", "#35b569", "#75c33b", "#efbf29", "#ee972c", "#e95b3c", "#d6456c", "#8955c6"];
+
+function splitPieSlices(rawSlices, threshold = 0.015, softCap = 12) {
+  const maxValue = rawSlices[0]?.value || 0;
+  if (!maxValue) return { keep: [], tail: [] };
+  let keep = rawSlices.filter((slice) => slice.value >= maxValue * threshold);
+  const tail = rawSlices.filter((slice) => slice.value < maxValue * threshold);
+  if (keep.length > softCap) {
+    tail.push(...keep.slice(softCap));
+    keep = keep.slice(0, softCap);
+  }
+  return { keep, tail };
+}
+
+function companyActivityPieSlices(rows) {
+  const items = safeArray(rows).filter((row) => numberOrNull(row?.value) !== null && Number(row.value) > 0);
+  if (!items.length) return { chartSlices: [], legendSlices: [] };
+
+  const total = items.reduce((sum, row) => sum + row.value, 0);
+  const rawSlices = items
+    .map((row) => ({
+      ...row,
+      percentage: total > 0 ? row.value / total : 0,
+    }))
+    .sort((left, right) => right.value - left.value);
+
+  const { keep, tail } = splitPieSlices(rawSlices);
+  const chartSlices = keep.slice();
+  const combinedIds = new Set(tail.map((slice) => String(slice.id || slice.name)));
+
+  if (tail.length) {
+    const tailValue = tail.reduce((sum, row) => sum + row.value, 0);
+    chartSlices.push({
+      id: "other",
+      name: "Other",
+      value: tailValue,
+      percentage: total > 0 ? tailValue / total : 0,
+      meta: null,
+      isOther: true,
+    });
+  }
+
+  const primaryId = chartSlices.find((slice) => !slice.isOther)?.id || null;
+  const colorForSlice = (slice) => {
+    const sliceId = String(slice.id || slice.name);
+    if (slice.isOther || combinedIds.has(sliceId)) {
+      return {
+        solid: "#b8afc8",
+        gradient: "linear-gradient(135deg, #c8c1d6, #a99fbd)",
+      };
+    }
+
+    const rankable = chartSlices.filter((item) => !item.isOther);
+    if ((slice.id || slice.name) === primaryId) {
+      return {
+        solid: "#7a1ce1",
+        gradient: "linear-gradient(135deg, #7a1ce1, #7a1ce1)",
+      };
+    }
+
+    const secondary = rankable.filter((item) => (item.id || item.name) !== primaryId);
+    const index = secondary.findIndex((item) => (item.id || item.name) === (slice.id || slice.name));
+    const paletteIndex = index < 0 ? 0 : index % COMPANY_ACTIVITY_SLICE_COLORS.length;
+    return {
+      solid: COMPANY_ACTIVITY_SLICE_SOLID_COLORS[paletteIndex],
+      gradient: COMPANY_ACTIVITY_SLICE_COLORS[paletteIndex],
+    };
+  };
+
+  return {
+    chartSlices: chartSlices.map((slice) => ({ ...slice, ...colorForSlice(slice) })),
+    legendSlices: rawSlices
+      .slice()
+      .sort((left, right) => right.percentage - left.percentage)
+      .map((slice) => ({ ...slice, ...colorForSlice(slice) })),
+  };
+}
+
+function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
+  const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180;
+  return {
+    x: centerX + radius * Math.cos(angleInRadians),
+    y: centerY + radius * Math.sin(angleInRadians),
+  };
+}
+
+function describeDonutSegment(centerX, centerY, outerRadius, innerRadius, startAngle, endAngle) {
+  const outerStart = polarToCartesian(centerX, centerY, outerRadius, startAngle);
+  const outerEnd = polarToCartesian(centerX, centerY, outerRadius, endAngle);
+  const innerEnd = polarToCartesian(centerX, centerY, innerRadius, endAngle);
+  const innerStart = polarToCartesian(centerX, centerY, innerRadius, startAngle);
+  const largeArcFlag = endAngle - startAngle > 180 ? 1 : 0;
+
+  return [
+    `M ${outerStart.x.toFixed(3)} ${outerStart.y.toFixed(3)}`,
+    `A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${outerEnd.x.toFixed(3)} ${outerEnd.y.toFixed(3)}`,
+    `L ${innerEnd.x.toFixed(3)} ${innerEnd.y.toFixed(3)}`,
+    `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${innerStart.x.toFixed(3)} ${innerStart.y.toFixed(3)}`,
+    "Z",
+  ].join(" ");
+}
+
+function svgGradientStops(gradient) {
+  const matches = String(gradient || "").match(/#[0-9a-fA-F]{6}/g);
+  if (!matches || matches.length < 2) {
+    return ["#7a1ce1", "#b828cd"];
+  }
+  return [matches[0], matches[matches.length - 1]];
+}
+
+function adjustHexColor(hex, amount = 0) {
+  const normalized = String(hex || "").trim();
+  if (!/^#[0-9a-fA-F]{6}$/.test(normalized)) return normalized || "#7a1ce1";
+  const clamp = (value) => Math.max(0, Math.min(255, value));
+  const toHex = (value) => clamp(Math.round(value)).toString(16).padStart(2, "0");
+  const red = Number.parseInt(normalized.slice(1, 3), 16);
+  const green = Number.parseInt(normalized.slice(3, 5), 16);
+  const blue = Number.parseInt(normalized.slice(5, 7), 16);
+
+  if (amount >= 0) {
+    return `#${toHex(red + (255 - red) * amount)}${toHex(green + (255 - green) * amount)}${toHex(blue + (255 - blue) * amount)}`;
+  }
+
+  const factor = 1 + amount;
+  return `#${toHex(red * factor)}${toHex(green * factor)}${toHex(blue * factor)}`;
+}
+
+function companyActivityPieSvgMarkup(slices) {
+  const size = 260;
+  const outerRadius = 118;
+  const innerRadius = 70;
+  const center = size / 2;
+  const defs = slices
+    .map((slice, index) => {
+      const [rawStartColor, rawEndColor] = svgGradientStops(slice.gradient);
+      const startColor = adjustHexColor(rawStartColor, 0.18);
+      const endColor = adjustHexColor(rawEndColor, -0.14);
+      return `
+        <linearGradient id="company-activity-slice-${index}" x1="10%" y1="8%" x2="88%" y2="92%">
+          <stop offset="0%" stop-color="${escapeHtml(startColor)}"></stop>
+          <stop offset="100%" stop-color="${escapeHtml(endColor)}"></stop>
+        </linearGradient>
+      `;
+    })
+    .join("");
+  let current = -90;
+
+  const segments = slices
+    .map((slice, index) => {
+      const span = slice.percentage * 360;
+      if (span <= 0) return "";
+      const start = current;
+      const end = current + span;
+      current += span;
+      if (end <= start) return "";
+
+      return `
+        <path
+          d="${describeDonutSegment(center, center, outerRadius, innerRadius, start, end)}"
+          fill="url(#company-activity-slice-${index})"
+        ></path>
+      `;
+    })
+    .join("");
+
+  return `
+    <svg viewBox="0 0 ${size} ${size}" aria-hidden="true">
+      <defs>
+        ${defs}
+      </defs>
+      ${segments}
+    </svg>
+  `;
+}
+
+function companyActivityPieLegendMarkup(slices, pagerId) {
+  const list = safeArray(slices);
+  if (!list.length) return "";
+
+  const pageSize = 3;
+  const pages = [];
+  for (let index = 0; index < list.length; index += pageSize) {
+    pages.push(list.slice(index, index + pageSize));
+  }
+  const isPaged = list.length > pageSize;
+
+  return `
+    <div class="person-financial-pie-legend company-paged-list${isPaged ? " is-paged" : ""}" data-paged-list="${escapeHtml(pagerId)}" data-page-index="0">
+      ${
+        isPaged
+          ? `
+            <div class="company-floating-rail company-paged-list-controls">
+              <button class="company-page-button" type="button" data-page-prev="${escapeHtml(pagerId)}" aria-label="Previous page"><span aria-hidden="true">${chevronIcon("left")}</span></button>
+              <span class="company-paged-list-status" data-page-status>${escapeHtml(`1 / ${pages.length}`)}</span>
+              <button class="company-page-button" type="button" data-page-next="${escapeHtml(pagerId)}" aria-label="Next page"><span aria-hidden="true">${chevronIcon("right")}</span></button>
+            </div>
+          `
+          : ""
+      }
+      ${pages
+        .map(
+          (page, pageIndex) => `
+            <div class="company-paged-list-panel${pageIndex === 0 ? " is-active" : ""}" data-page-panel="${escapeHtml(pagerId)}" data-page-panel-index="${pageIndex}">
+              ${page
+                .map(
+                  (slice) => `
+                    <div class="person-financial-pie-row">
+                      <span class="person-financial-pie-swatch" style="background:${escapeHtml(slice.gradient)};"></span>
+                      <div class="person-financial-pie-copy">
+                        <span class="person-financial-pie-company company-tag-title">${escapeHtml(slice.name)}</span>
+                        ${textOrNull(slice.meta) ? `<p class="company-activity-pie-meta company-tag-meta">${escapeHtml(slice.meta)}</p>` : ""}
+                      </div>
+                      <strong class="person-financial-pie-share company-activity-pie-share">
+                        ${escapeHtml(formatCompactCurrency(slice.value))}
+                        <span>(${escapeHtml(formatPercent(slice.percentage * 100))})</span>
+                      </strong>
+                    </div>
+                  `
+                )
+                .join("")}
+            </div>
+          `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+function companyActivityPieChartMarkup(rows, total, label, emptyLabel, pagerId) {
+  const { chartSlices, legendSlices } = companyActivityPieSlices(rows);
+  if (!legendSlices.length) {
+    return `<p class="company-empty-copy">${escapeHtml(emptyLabel)}</p>`;
+  }
+
+  return `
+    <div class="person-financial-pie-chart company-activity-pie-chart">
+      ${companyActivityPieLegendMarkup(legendSlices, pagerId)}
+      <div class="person-financial-pie-figure-wrap">
+        <div class="person-financial-pie-figure">
+          ${companyActivityPieSvgMarkup(chartSlices)}
+          <div class="person-financial-pie-ring">
+            <div class="person-financial-pie-hole">
+              <strong>${escapeHtml(label || formatCompactCurrency(total))}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   `;
 }

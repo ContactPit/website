@@ -2,6 +2,8 @@
 
 This document captures the implemented visual system used by the current home page in [`index.html`](/Users/rasmustauts/website/index.html) and [`styles.css`](/Users/rasmustauts/website/styles.css). New public-facing pages should follow these decisions so the website keeps a coherent ContactPit look.
 
+Any task that touches UI, styling, layout, visual presentation, or public-facing frontend behavior should use [$frontend-design](/Users/rasmustauts/.agents/skills/frontend-design/SKILL.md) alongside this document.
+
 ## Core Theme
 
 - Default visual direction: bright, premium, data-product marketing surface.
