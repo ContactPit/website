@@ -18,7 +18,6 @@ const state = {
   packages: [],
   filteredPackages: [],
   selectedPackageId: null,
-  packageBypass: false,
   currentStep: "package",
   recipientType: "individual",
   language: "en",
@@ -100,7 +99,6 @@ function cacheElements() {
     "recipient-email",
     "recipient-company-name",
     "company-name-field",
-    "checkout-package-bypass-button",
     "checkout-package-continue-button",
     "checkout-details-back-button",
     "checkout-details-continue-button",
@@ -132,7 +130,6 @@ function cacheElements() {
 
 function bindEvents() {
   document.addEventListener("click", handleClick);
-  el["checkout-package-bypass-button"]?.addEventListener("click", bypassPackageStep);
   el["checkout-package-continue-button"]?.addEventListener("click", continueFromPackageStep);
   el["checkout-details-back-button"]?.addEventListener("click", () => setCurrentStep("package"));
   el["checkout-details-continue-button"]?.addEventListener("click", continueFromDetailsStep);
@@ -173,7 +170,6 @@ function showLayout() {
 function initializeFormDefaults() {
   state.recipientType = "individual";
   state.language = "en";
-  state.packageBypass = false;
   state.checkoutCompleted = false;
   el["recipient-name"].value = "";
   el["recipient-email"].value = "";
@@ -204,7 +200,6 @@ function handleClick(event) {
   const packageButton = event.target.closest("[data-package-id]");
   if (packageButton) {
     state.selectedPackageId = Number.parseInt(packageButton.getAttribute("data-package-id"), 10);
-    state.packageBypass = false;
     resetPaymentSession();
     renderPackageChoices();
     renderSummary();
@@ -270,9 +265,7 @@ function renderSummary() {
   const languageLabel = state.language === "et" ? "Estonian" : "English";
 
   if (!selectedPackage) {
-    el["checkout-package-summary"].innerHTML = state.packageBypass
-      ? '<div class="checkout-summary-placeholder">Package selection skipped temporarily.</div>'
-      : '<div class="checkout-summary-placeholder">Choose a package to see pricing.</div>';
+    el["checkout-package-summary"].innerHTML = '<div class="checkout-summary-placeholder">Choose a package to see pricing.</div>';
     el["checkout-price-subtotal"].textContent = currencyFormatter.format(0);
     el["checkout-price-vat"].textContent = currencyFormatter.format(0);
     el["checkout-price-total"].textContent = currencyFormatter.format(0);
@@ -305,17 +298,9 @@ function renderSummary() {
   }
 }
 
-function bypassPackageStep() {
-  state.packageBypass = true;
-  state.selectedPackageId = null;
-  renderPackageChoices();
-  renderSummary();
-  setCurrentStep("details");
-}
-
 function continueFromPackageStep() {
   if (!packageStepIsValid()) {
-    setPackageStatus("Choose a package or use God mode to skip this step for now.", "error");
+    setPackageStatus("Choose a package before continuing.", "error");
     return;
   }
   setCurrentStep("details");
@@ -329,8 +314,8 @@ async function continueFromDetailsStep() {
 
   const selectedPackage = getSelectedPackage();
   if (!selectedPackage) {
-    setCurrentStep("payment");
-    setPaymentStatus("Package selection is currently bypassed. Payment stays blocked until a package is selected.", "warning");
+    setCurrentStep("package");
+    setPackageStatus("Choose a package before continuing to payment.", "error");
     return;
   }
 
@@ -681,7 +666,7 @@ function updateContinueState() {
 }
 
 function packageStepIsValid() {
-  return Boolean(getSelectedPackage() || state.packageBypass);
+  return Boolean(getSelectedPackage());
 }
 
 function detailsStepIsValid() {

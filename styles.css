@@ -356,6 +356,14 @@ img {
   min-height: 42px;
   padding: 0 16px;
   border: 0;
+  cursor: pointer;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  box-shadow: none;
+  transform: none;
 }
 
 .button-secondary {
