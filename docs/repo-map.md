@@ -31,8 +31,23 @@ This repository now contains a static landing-page implementation plus the longe
 - `filters/filters.js`
   Client-side filters controller. Loads live filter config and legends, maintains browser selection state, and composes the same count payload shape used by the iOS app.
 
+- `checkout/index.html`
+  Dedicated checkout route for leadlist ordering. Receives the current filters selection from `/filters/`, mirrors the iOS order setup fields for guests, and hosts the Stripe-ready direct-payment UI.
+
+- `checkout/checkout.js`
+  Client-side checkout controller. Loads packages, builds guest order requests, initializes Stripe Elements, and confirms direct payments.
+
 - `api/filters.js`
   Same-origin serverless proxy for the filters page. Aggregates filter configuration plus legends on `GET` and forwards company count checks on `POST`.
+
+- `api/packages.js`
+  Same-origin serverless proxy for package loading used by checkout and other leadlist-order surfaces.
+
+- `api/checkout-config.js`
+  Same-origin serverless config endpoint for runtime checkout settings such as the Stripe publishable key.
+
+- `api/create-order-and-payment.js`
+  Same-origin serverless proxy for direct-payment order creation and PaymentIntent bootstrap.
 
 - `blog/index.html`
   Dedicated blog page entrypoint for editorial and product-writing rollout.

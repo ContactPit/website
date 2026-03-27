@@ -16,6 +16,9 @@
 - route definitions under `src/router/**`, `src/pages/**`, or framework-native route folders
   Public entrypoints for landing pages, search, detail pages, auth pages, account pages, and any admin surfaces.
 
+- `/checkout/`
+  Public route entrypoint for guest leadlist order setup and direct-payment checkout.
+
 - route guards or auth-aware loaders
   Entry points for redirecting unauthenticated users and bootstrapping protected views.
 
@@ -49,3 +52,4 @@
 ## Current State
 
 - Static page entrypoints currently include `/`, `/filters/`, `/blog/`, `/about/`, `/company/:slug`, and `/person/:slug`.
+- Static page entrypoints currently include `/`, `/filters/`, `/checkout/`, `/blog/`, `/about/`, `/company/:slug`, and `/person/:slug`.

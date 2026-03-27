@@ -25,6 +25,7 @@ module.exports = async function handler(_req, res) {
       catalog: catalog.message,
       counties: counties.message,
       testimonials: essentials.message.testimonials,
+      packages: essentials.message.packages,
     });
   } catch (error) {
     res.status(500).json({

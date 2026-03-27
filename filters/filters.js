@@ -1,10 +1,11 @@
-import { getOrFetchSessionCache } from "../shared/session-bootstrap-cache.js";
+import { getOrFetchSessionCache, setSessionCache } from "../shared/session-bootstrap-cache.js";
 
 const API_ENDPOINT = "/api/filters";
 const API_BASE_URL = "https://leadlistscraper-524b3d937ddd.herokuapp.com";
 const COUNT_DEBOUNCE_MS = 450;
 const MAX_FILTER_RESULTS = 120;
 const FILTERS_CACHE_KEY = "filters-bootstrap";
+const CHECKOUT_DRAFT_KEY = "checkout-draft";
 const SESSION_BOOTSTRAP_TTL_MS = 30 * 60 * 1000;
 const LEGAL_FORMS = [
   "AMETÜ", "AS", "AVOIG", "EMÜ", "ERAK", "FIE", "FIL", "KOVAS",
@@ -309,6 +310,12 @@ function handleClick(event) {
   const removeChip = event.target.closest("[data-remove-chip]");
   if (removeChip) {
     removeChipValue(removeChip.getAttribute("data-remove-chip"), removeChip.getAttribute("data-remove-value"));
+    return;
+  }
+
+  const orderButton = event.target.closest("[data-order-checkout]");
+  if (orderButton && !persistCheckoutDraft()) {
+    event.preventDefault();
   }
 }
 
@@ -580,6 +587,29 @@ async function requestCount() {
       appState.activeRequest = null;
     }
   }
+}
+
+function persistCheckoutDraft() {
+  const payload = buildCheckDataCountPayload();
+  if (!payload || !isValidPayload(payload)) {
+    setCountState("error", null, "Add at least one valid filter combination before opening checkout.");
+    return false;
+  }
+
+  if (typeof appState.countValue !== "number" || Number.isNaN(appState.countValue) || appState.countValue <= 0) {
+    setCountState("error", null, "Wait for the live company count before opening checkout.");
+    return false;
+  }
+
+  setSessionCache(CHECKOUT_DRAFT_KEY, {
+    filters: payload,
+    companyCount: appState.countValue,
+    activeFilters: activeFilterLabels(),
+    createdAt: Date.now(),
+    source: "filters",
+  }, SESSION_BOOTSTRAP_TTL_MS);
+
+  return true;
 }
 
 function setCountState(status, count, message) {

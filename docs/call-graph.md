@@ -46,6 +46,14 @@ user completes lead form or order request
 → analytics conversion event records
 → success confirmation or follow-up step renders
 
+filters page order CTA
+→ current filters payload + live count persist into browser session state
+→ browser routes to `/checkout/`
+→ checkout setup collects package, recipient, and language
+→ same-origin `/api/create-order-and-payment` proxy creates order + payment intent
+→ Stripe Elements confirms card or Apple Pay payment
+→ success confirmation renders
+
 ## 6) Account Flow
 
 authenticated route load

@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ContactPit | Checkout</title>
+    <meta
+      name="description"
+      content="Finalize your ContactPit leadlist order with package selection, delivery settings, and secure payment."
+    />
+    <link rel="stylesheet" href="/styles.css?v=__ASSET_VERSION__" />
+    <script src="https://js.stripe.com/clover/stripe.js"></script>
+  </head>
+  <body class="page-checkout">
+    <div class="site-shell checkout-shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="ContactPit home">
+          <img class="brand-mark-image" src="/assets/ios/Icon.svg" alt="" width="40" height="40" />
+          <span class="brand-text">ContactPit</span>
+        </a>
+        <nav class="main-nav" aria-label="Main navigation">
+          <a href="/">Home</a>
+          <a href="/filters/">Filters</a>
+          <a href="/blog/">Blog</a>
+          <a href="/about/">About us</a>
+        </nav>
+        <div class="topbar-actions">
+          <a class="primary-link" href="/filters/">Back to filters</a>
+        </div>
+      </header>
+
+      <main class="checkout-main">
+        <section class="checkout-empty-state" id="checkout-empty-state" hidden>
+          <div class="checkout-empty-card">
+            <p class="eyebrow">No order draft</p>
+            <h2>Start from the filters page.</h2>
+            <p>
+              The checkout needs an active filter selection so it can carry your live company count
+              and targeting setup into the order.
+            </p>
+            <a class="primary-link" href="/filters/">Open filters</a>
+          </div>
+        </section>
+
+        <section class="checkout-layout" id="checkout-layout" hidden>
+          <section class="checkout-progress" id="checkout-progress">
+            <div class="checkout-progress-steps" aria-label="Checkout progress">
+              <article class="checkout-progress-step" data-progress-step="package" data-step-index="1">
+                <span class="checkout-progress-index">01</span>
+                <strong>Package</strong>
+              </article>
+              <article class="checkout-progress-step" data-progress-step="details" data-step-index="2">
+                <span class="checkout-progress-index">02</span>
+                <strong>Buyer</strong>
+              </article>
+              <article class="checkout-progress-step" data-progress-step="payment" data-step-index="3">
+                <span class="checkout-progress-index">03</span>
+                <strong>Payment</strong>
+              </article>
+            </div>
+          </section>
+
+          <div class="checkout-flow">
+            <section class="checkout-stage" data-checkout-stage="package">
+              <div class="checkout-stage-shell">
+                <header class="checkout-section-head checkout-stage-headline">
+                  <div>
+                    <p class="eyebrow" id="checkout-stage-label">Step 1 of 3</p>
+                    <h2 id="checkout-stage-title">Choose package</h2>
+                  </div>
+                </header>
+
+                <div class="checkout-package-status" id="checkout-package-status" hidden></div>
+                <div class="checkout-package-grid" id="checkout-package-grid"></div>
+
+                <div class="checkout-actions">
+                  <button class="button button-secondary" id="checkout-package-bypass-button" type="button">
+                    God mode: skip for now
+                  </button>
+                  <button class="button button-primary checkout-continue" id="checkout-package-continue-button" type="button">
+                    Continue to details
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <section class="checkout-stage" data-checkout-stage="details" hidden>
+              <div class="checkout-stage-shell">
+                <header class="checkout-section-head checkout-stage-headline">
+                  <div>
+                    <p class="eyebrow" id="checkout-stage-label-details">Step 2 of 3</p>
+                    <h2 id="checkout-stage-title-details">Buyer and delivery</h2>
+                  </div>
+                </header>
+
+                <div class="checkout-setup-grid">
+                  <section class="checkout-section checkout-section-buyer">
+                    <header class="checkout-section-head">
+                      <div>
+                        <h3>Buyer</h3>
+                      </div>
+                      <p>This email receives the payment receipt and order updates.</p>
+                    </header>
+
+                    <div class="checkout-field-stack">
+                      <label class="field field-strong">
+                        <span>Full name</span>
+                        <input id="recipient-name" type="text" autocomplete="name" placeholder="e.g. Jane Founder" />
+                      </label>
+                      <label class="field field-strong">
+                        <span>Email</span>
+                        <input id="recipient-email" type="email" autocomplete="email" placeholder="e.g. jane@company.com" />
+                      </label>
+                    </div>
+
+                    <fieldset class="checkout-radio-group" id="recipient-type-grid">
+                      <legend>Recipient type</legend>
+                      <label class="checkout-radio-option is-active" data-recipient-type="individual">
+                        <input name="recipient-type" type="radio" value="individual" checked />
+                        <span class="checkout-radio-control" aria-hidden="true"></span>
+                        <span class="checkout-radio-copy">
+                          <strong>Individual</strong>
+                        </span>
+                      </label>
+                      <label class="checkout-radio-option" data-recipient-type="company">
+                        <input name="recipient-type" type="radio" value="company" />
+                        <span class="checkout-radio-control" aria-hidden="true"></span>
+                        <span class="checkout-radio-copy">
+                          <strong>Company</strong>
+                        </span>
+                      </label>
+                    </fieldset>
+
+                    <label class="field field-strong" id="company-name-field" hidden>
+                      <span>Company name</span>
+                      <input id="recipient-company-name" type="text" autocomplete="organization" placeholder="e.g. ContactPit OÜ" />
+                    </label>
+                  </section>
+
+                  <section class="checkout-section checkout-section-delivery">
+                    <header class="checkout-section-head">
+                      <div>
+                        <h3>Delivery</h3>
+                      </div>
+                      <p>Choose the export and communication language.</p>
+                    </header>
+
+                    <fieldset class="checkout-radio-group" id="language-grid">
+                      <legend>Language</legend>
+                      <label class="checkout-radio-option is-active" data-language="en">
+                        <input name="delivery-language" type="radio" value="en" checked />
+                        <span class="checkout-radio-control" aria-hidden="true"></span>
+                        <span class="checkout-radio-copy">
+                          <strong>English</strong>
+                        </span>
+                      </label>
+                      <label class="checkout-radio-option" data-language="et">
+                        <input name="delivery-language" type="radio" value="et" />
+                        <span class="checkout-radio-control" aria-hidden="true"></span>
+                        <span class="checkout-radio-copy">
+                          <strong>Estonian</strong>
+                        </span>
+                      </label>
+                    </fieldset>
+                  </section>
+                </div>
+
+                <div class="checkout-actions">
+                  <button class="button button-secondary" id="checkout-details-back-button" type="button">
+                    Back
+                  </button>
+                  <button class="button button-primary checkout-continue" id="checkout-details-continue-button" type="button">
+                    Continue to payment
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <section class="checkout-stage" data-checkout-stage="payment" hidden>
+              <div class="checkout-stage-shell">
+                <header class="checkout-section-head checkout-stage-headline">
+                  <div>
+                    <p class="eyebrow" id="checkout-stage-label-payment">Step 3 of 3</p>
+                    <h2 id="checkout-stage-title-payment">Secure payment</h2>
+                  </div>
+                </header>
+
+                <div class="checkout-payment-shell">
+                  <div class="checkout-payment-status" id="checkout-payment-status" aria-live="polite"></div>
+                  <div class="checkout-invoice-loading" id="checkout-invoice-loading" hidden aria-live="polite">
+                    <div class="checkout-invoice-loading-orb" aria-hidden="true">
+                      <span></span>
+                      <span></span>
+                    </div>
+                    <div class="checkout-invoice-loading-copy">
+                      <p class="eyebrow">Preparing invoice</p>
+                      <h3>Creating the order and invoice request.</h3>
+                      <p>We are locking the request with an idempotency key and handing it off for invoice processing.</p>
+                    </div>
+                    <div class="checkout-invoice-loading-steps" aria-hidden="true">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
+                  </div>
+                  <div class="checkout-payment-loading checkout-process-loading" id="checkout-payment-loading" hidden aria-live="polite">
+                    <div class="checkout-process-loading-orb" aria-hidden="true">
+                      <span></span>
+                      <span></span>
+                    </div>
+                    <div class="checkout-process-loading-copy">
+                      <p class="eyebrow" id="checkout-payment-loading-eyebrow">Preparing payment</p>
+                      <h3 id="checkout-payment-loading-title">Creating your secure payment session.</h3>
+                      <p id="checkout-payment-loading-copy">We are locking the order and opening the Stripe payment flow for this checkout.</p>
+                    </div>
+                    <div class="checkout-process-loading-steps" aria-hidden="true">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
+                  </div>
+                  <div class="checkout-stripe-host" id="checkout-stripe-host" hidden>
+                    <div id="payment-element"></div>
+                  </div>
+                  <div class="checkout-payment-placeholder" id="checkout-payment-placeholder" hidden>
+                    <p class="eyebrow">Stripe configuration required</p>
+                    <h3>Add `STRIPE_PUBLISHABLE_KEY` to enable payment.</h3>
+                    <p>
+                      Once the publishable key is present, the payment form renders here automatically.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="checkout-actions">
+                  <button class="button button-secondary" id="checkout-back-button" type="button">
+                    Back
+                  </button>
+                  <button class="button button-secondary checkout-invoice-button" id="checkout-invoice-button" type="button">
+                    <span class="checkout-button-label">Request invoice</span>
+                    <span class="checkout-button-loader" aria-hidden="true"></span>
+                  </button>
+                  <button class="button button-primary checkout-pay-button" id="checkout-pay-button" type="button">
+                    <span class="checkout-button-label">Pay now</span>
+                    <span class="checkout-button-loader" aria-hidden="true"></span>
+                  </button>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <aside class="checkout-sidebar">
+            <section class="checkout-summary-card">
+              <div class="checkout-summary-head">
+                <p class="eyebrow">Summary</p>
+                <h2>Your leadlist</h2>
+              </div>
+
+              <div class="checkout-summary-stack">
+                <div class="checkout-price-row">
+                  <span>Companies</span>
+                  <strong id="checkout-company-count">0</strong>
+                </div>
+                <div class="checkout-price-row">
+                  <span>Applied filters</span>
+                  <strong id="checkout-filter-count">0</strong>
+                </div>
+                <div class="checkout-price-divider checkout-price-divider-section" aria-hidden="true"></div>
+              </div>
+
+              <div class="checkout-summary-stack" id="checkout-package-summary">
+                <div class="checkout-summary-placeholder">Choose a package to see pricing.</div>
+              </div>
+
+              <div class="checkout-price-stack">
+                <div class="checkout-price-row">
+                  <span>Subtotal</span>
+                  <strong id="checkout-price-subtotal">€0</strong>
+                </div>
+                <div class="checkout-price-row">
+                  <span>VAT</span>
+                  <strong id="checkout-price-vat">€0</strong>
+                </div>
+                <div class="checkout-price-divider" aria-hidden="true"></div>
+                <div class="checkout-price-row is-total">
+                  <span>Total</span>
+                  <strong id="checkout-price-total">€0</strong>
+                </div>
+              </div>
+            </section>
+          </aside>
+        </section>
+
+        <section class="checkout-success-screen" id="checkout-success" hidden>
+          <div class="checkout-stage-shell checkout-success">
+            <div class="checkout-success-mark" aria-hidden="true">
+              <div class="checkout-success-mark-ring"></div>
+              <div class="checkout-success-mark-core">✓</div>
+            </div>
+            <div class="checkout-success-badge" id="checkout-success-badge">Paid</div>
+            <h2 id="checkout-success-title">Order created successfully.</h2>
+            <p id="checkout-success-copy">Your payment completed and the order is now processing.</p>
+            <div class="checkout-success-meta">
+              <div class="checkout-success-meta-row">
+                <span>Package</span>
+                <strong id="checkout-success-package">Basic</strong>
+              </div>
+              <div class="checkout-success-meta-row">
+                <span>Recipient</span>
+                <strong id="checkout-success-recipient">jane@company.com</strong>
+              </div>
+              <div class="checkout-success-meta-row">
+                <span>Next step</span>
+                <strong id="checkout-success-next-step">We’re processing the order now.</strong>
+              </div>
+            </div>
+            <div class="checkout-actions">
+              <a class="button button-primary" href="/filters/">Create another order</a>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/checkout/checkout.js?v=__ASSET_VERSION__"></script>
+  </body>
+</html>

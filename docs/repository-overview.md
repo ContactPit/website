@@ -4,6 +4,7 @@
 - The repository currently ships a static multi-page website built from top-level HTML, CSS, and JavaScript entrypoints, with serverless helpers under `api/`.
 - Local development should run through Vite so browser pages and local `/api/*` helper routes work together during development.
 - The website should act as a client-facing product surface for discovery, lead generation, account flows, and marketing or conversion journeys.
+- The website now includes a dedicated guest checkout route for leadlist ordering, using the filters selection as the order source and Stripe-ready direct payment as the completion path.
 - Shared business concepts are expected to align with the existing ContactPit ecosystem: companies, people, search, leadlists, orders, authentication, and account management.
 - Cross-repo integration is likely to include ContactPit backend APIs, analytics or telemetry, authentication providers, and shared public messaging.
 - Any work that touches UI, styling, layout, visual presentation, or public-facing frontend behavior should use [$frontend-design](/Users/rasmustauts/.agents/skills/frontend-design/SKILL.md).

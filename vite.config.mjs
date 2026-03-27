@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import { resolve } from "node:path";
 import { readFile } from "node:fs/promises";
 
@@ -50,10 +50,8 @@ async function readJsonBody(req) {
 }
 
 function apiRoutesPlugin() {
-  return {
-    name: "contactpit-local-api-routes",
-    configureServer(server) {
-      server.middlewares.use(async (req, res, next) => {
+  const registerMiddleware = (server) => {
+    server.middlewares.use(async (req, res, next) => {
         try {
           const pathname = (req.url || "").split("?")[0];
 
@@ -68,6 +66,15 @@ function apiRoutesPlugin() {
 
           if (req.method === "GET" && /^\/person\/[^/.]+\/?$/.test(pathname)) {
             const template = await readFile(resolve(process.cwd(), "person/index.html"), "utf8");
+            const html = await server.transformIndexHtml(pathname, template, req.originalUrl);
+            res.statusCode = 200;
+            res.setHeader("Content-Type", "text/html; charset=utf-8");
+            res.end(html);
+            return;
+          }
+
+          if (req.method === "GET" && /^\/checkout\/?$/.test(pathname)) {
+            const template = await readFile(resolve(process.cwd(), "checkout/index.html"), "utf8");
             const html = await server.transformIndexHtml(pathname, template, req.originalUrl);
             res.statusCode = 200;
             res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -90,7 +97,94 @@ function apiRoutesPlugin() {
               catalog: catalog.message,
               counties: counties.message,
               testimonials: essentials.message.testimonials,
+              packages: essentials.message.packages,
             });
+            return;
+          }
+
+          if (req.url === "/api/packages" && req.method === "GET") {
+            const packages = await upstreamJson("/api/packages");
+            sendJson(res, 200, packages);
+            return;
+          }
+
+          if (req.url === "/__checkout_api/packages" && req.method === "GET") {
+            const packages = await upstreamJson("/api/packages");
+            sendJson(res, 200, packages);
+            return;
+          }
+
+          if (req.url === "/api/checkout-config" && req.method === "GET") {
+            sendJson(res, 200, {
+              publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || "",
+              merchantCountry: process.env.STRIPE_MERCHANT_COUNTRY || "EE",
+            });
+            return;
+          }
+
+          if (req.url === "/__checkout_api/checkout-config" && req.method === "GET") {
+            sendJson(res, 200, {
+              publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || "",
+              merchantCountry: process.env.STRIPE_MERCHANT_COUNTRY || "EE",
+            });
+            return;
+          }
+
+          if (req.url === "/api/create-order-and-payment" && req.method === "POST") {
+            const body = await readJsonBody(req);
+            const payload = await upstreamJson("/api/create-order-and-payment", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Idempotency-Key": req.headers["idempotency-key"] || crypto.randomUUID(),
+                "X-Debug-Mode": req.headers["x-debug-mode"] || "false",
+              },
+              body: JSON.stringify(body),
+            });
+            sendJson(res, 200, payload);
+            return;
+          }
+
+          if (req.url === "/__checkout_api/create-order-and-payment" && req.method === "POST") {
+            const body = await readJsonBody(req);
+            const payload = await upstreamJson("/api/create-order-and-payment", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Idempotency-Key": req.headers["idempotency-key"] || crypto.randomUUID(),
+                "X-Debug-Mode": req.headers["x-debug-mode"] || "false",
+              },
+              body: JSON.stringify(body),
+            });
+            sendJson(res, 200, payload);
+            return;
+          }
+
+          if (req.url === "/api/send/request" && req.method === "POST") {
+            const body = await readJsonBody(req);
+            const payload = await upstreamJson("/api/send/request", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Idempotency-Key": req.headers["idempotency-key"] || crypto.randomUUID(),
+              },
+              body: JSON.stringify(body),
+            });
+            sendJson(res, 200, payload);
+            return;
+          }
+
+          if (req.url === "/__checkout_api/send/request" && req.method === "POST") {
+            const body = await readJsonBody(req);
+            const payload = await upstreamJson("/api/send/request", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Idempotency-Key": req.headers["idempotency-key"] || crypto.randomUUID(),
+              },
+              body: JSON.stringify(body),
+            });
+            sendJson(res, 200, payload);
             return;
           }
 
@@ -186,6 +280,15 @@ function apiRoutesPlugin() {
           });
         }
       });
+  };
+
+  return {
+    name: "contactpit-local-api-routes",
+    configureServer(server) {
+      registerMiddleware(server);
+    },
+    configurePreviewServer(server) {
+      registerMiddleware(server);
     },
   };
 }
@@ -199,27 +302,32 @@ function assetVersionPlugin() {
   };
 }
 
-export default defineConfig({
-  plugins: [apiRoutesPlugin(), assetVersionPlugin()],
-  build: {
-    rollupOptions: {
-      input: {
-        main: resolve(process.cwd(), "index.html"),
-        about: resolve(process.cwd(), "about/index.html"),
-        blog: resolve(process.cwd(), "blog/index.html"),
-        filters: resolve(process.cwd(), "filters/index.html"),
-        company: resolve(process.cwd(), "company/index.html"),
-        person: resolve(process.cwd(), "person/index.html"),
-        builder: resolve(process.cwd(), "builder/index.html"),
+export default defineConfig(({ mode }) => {
+  Object.assign(process.env, loadEnv(mode, process.cwd(), ""));
+
+  return {
+    plugins: [apiRoutesPlugin(), assetVersionPlugin()],
+    build: {
+      rollupOptions: {
+        input: {
+          main: resolve(process.cwd(), "index.html"),
+          about: resolve(process.cwd(), "about/index.html"),
+          blog: resolve(process.cwd(), "blog/index.html"),
+          filters: resolve(process.cwd(), "filters/index.html"),
+          checkout: resolve(process.cwd(), "checkout/index.html"),
+          company: resolve(process.cwd(), "company/index.html"),
+          person: resolve(process.cwd(), "person/index.html"),
+          builder: resolve(process.cwd(), "builder/index.html"),
+        },
       },
     },
-  },
-  server: {
-    headers: NO_STORE_HEADERS,
-    port: 4173,
-  },
-  preview: {
-    headers: NO_STORE_HEADERS,
-    port: 4173,
-  },
+    server: {
+      headers: NO_STORE_HEADERS,
+      port: 4173,
+    },
+    preview: {
+      headers: NO_STORE_HEADERS,
+      port: 4173,
+    },
+  };
 });
