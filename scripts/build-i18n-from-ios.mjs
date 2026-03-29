@@ -9,22 +9,34 @@ function readStringValue(entry, locale) {
   return entry?.localizations?.[locale]?.stringUnit?.value ?? "";
 }
 
-const raw = await fs.readFile(sourcePath, "utf8");
-const catalog = JSON.parse(raw);
-const strings = catalog?.strings ?? {};
-
-const messages = {
-  en: {},
-  et: {},
-};
-
-for (const [key, entry] of Object.entries(strings)) {
-  if (!key) continue;
-  const english = readStringValue(entry, "en") || key;
-  const estonian = readStringValue(entry, "et-EE") || english;
-  messages.en[key] = english;
-  messages.et[key] = estonian;
+let sourceExists = true;
+try {
+  await fs.access(sourcePath);
+} catch {
+  sourceExists = false;
 }
 
-const fileContents = `export const iosMessages = ${JSON.stringify(messages, null, 2)};\n`;
-await fs.writeFile(outputPath, fileContents, "utf8");
+if (!sourceExists) {
+  console.warn(`[build:i18n] Skipping iOS catalog import because source file is missing: ${sourcePath}`);
+  console.warn(`[build:i18n] Using committed generated messages at: ${outputPath}`);
+} else {
+  const raw = await fs.readFile(sourcePath, "utf8");
+  const catalog = JSON.parse(raw);
+  const strings = catalog?.strings ?? {};
+
+  const messages = {
+    en: {},
+    et: {},
+  };
+
+  for (const [key, entry] of Object.entries(strings)) {
+    if (!key) continue;
+    const english = readStringValue(entry, "en") || key;
+    const estonian = readStringValue(entry, "et-EE") || english;
+    messages.en[key] = english;
+    messages.et[key] = estonian;
+  }
+
+  const fileContents = `export const iosMessages = ${JSON.stringify(messages, null, 2)};\n`;
+  await fs.writeFile(outputPath, fileContents, "utf8");
+}
