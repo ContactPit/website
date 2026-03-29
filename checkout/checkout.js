@@ -1,4 +1,5 @@
 import { getOrFetchSessionCache, getSessionCache } from "../shared/session-bootstrap-cache.js";
+import { formatCurrency, formatNumber, subscribeLocale, t, tl } from "../shared/i18n.js";
 
 const CHECKOUT_DRAFT_KEY = "checkout-draft";
 const DEV_API_PREFIX = "/__checkout_api";
@@ -6,13 +7,6 @@ const CHECKOUT_PACKAGES_CACHE_KEY = "checkout-packages-v2";
 const CHECKOUT_PACKAGES_TTL_MS = 30 * 60 * 1000;
 const API_BASE_URL = "https://leadlistscraper-524b3d937ddd.herokuapp.com";
 const TEST_PUBLISHABLE_KEY_PREFIX = "pk_test_";
-const countFormatter = new Intl.NumberFormat("en-US");
-const currencyFormatter = new Intl.NumberFormat("en-EE", {
-  style: "currency",
-  currency: "EUR",
-  maximumFractionDigits: 2,
-});
-
 const state = {
   draft: null,
   packages: [],
@@ -62,12 +56,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderSummary();
     showLayout();
   } catch (error) {
-    setPaymentStatus(error instanceof Error ? error.message : "Failed to load checkout.", "error");
+    setPaymentStatus(error instanceof Error ? error.message : tl("Failed to load checkout."), "error");
     renderPackageChoices();
     renderSummary();
     showLayout();
-    setPackageStatus(error instanceof Error ? error.message : "Failed to load packages.", "error");
+    setPackageStatus(error instanceof Error ? error.message : tl("Failed to load packages."), "error");
   }
+
+  subscribeLocale(() => {
+    renderDraftSummary();
+    renderPackageChoices();
+    renderSummary();
+    syncStageHeader(state.currentStep);
+  });
 });
 
 function cacheElements() {
@@ -223,7 +224,7 @@ function syncChoiceStates() {
 }
 
 function renderDraftSummary() {
-  el["checkout-company-count"].textContent = countFormatter.format(state.draft.companyCount);
+  el["checkout-company-count"].textContent = formatNumber(state.draft.companyCount, { maximumFractionDigits: 0 });
   el["checkout-filter-count"].textContent = String((state.draft.activeFilters || []).length);
 }
 
@@ -233,7 +234,7 @@ function renderPackageChoices() {
   if (!state.filteredPackages.length) {
     el["checkout-package-grid"].innerHTML = `
       <div class="checkout-inline-empty">
-        No package is currently available for this filter result count.
+        ${escapeHtml(t("checkout.package.noneAvailable"))}
       </div>
     `;
     return;
@@ -248,10 +249,10 @@ function renderPackageChoices() {
         <span class="checkout-package-copy">
           <span class="checkout-package-line">
             <span class="checkout-package-name">${escapeHtml(item.name)}</span>
-            ${item.isRecommended ? '<span class="checkout-package-badge">Recommended</span>' : ""}
+            ${item.isRecommended ? `<span class="checkout-package-badge">${escapeHtml(t("checkout.package.recommended"))}</span>` : ""}
           </span>
           <span class="checkout-package-meta">
-            ${currencyFormatter.format(item.totalPrice)} · Up to ${countFormatter.format(item.limit)} contacts
+            ${formatCurrency(item.totalPrice, { maximumFractionDigits: 2 })} · ${escapeHtml(t("checkout.package.contactsLimit", { count: formatNumber(item.limit, { maximumFractionDigits: 0 }) }))}
           </span>
         </span>
       </label>
@@ -262,45 +263,45 @@ function renderPackageChoices() {
 function renderSummary() {
   const selectedPackage = getSelectedPackage();
   const recipient = getRecipientData();
-  const languageLabel = state.language === "et" ? "Estonian" : "English";
+  const languageLabel = state.language === "et" ? t("site.lang.estonian") : t("site.lang.english");
 
   if (!selectedPackage) {
-    el["checkout-package-summary"].innerHTML = '<div class="checkout-summary-placeholder">Choose a package to see pricing.</div>';
-    el["checkout-price-subtotal"].textContent = currencyFormatter.format(0);
-    el["checkout-price-vat"].textContent = currencyFormatter.format(0);
-    el["checkout-price-total"].textContent = currencyFormatter.format(0);
+    el["checkout-package-summary"].innerHTML = `<div class="checkout-summary-placeholder">${escapeHtml(t("checkout.summary.packagePrompt"))}</div>`;
+    el["checkout-price-subtotal"].textContent = formatCurrency(0, { maximumFractionDigits: 2 });
+    el["checkout-price-vat"].textContent = formatCurrency(0, { maximumFractionDigits: 2 });
+    el["checkout-price-total"].textContent = formatCurrency(0, { maximumFractionDigits: 2 });
   } else {
     el["checkout-package-summary"].innerHTML = `
       <div class="checkout-price-row">
-        <span>Package</span>
+        <span>${escapeHtml(t("checkout.summary.package"))}</span>
         <strong>${escapeHtml(selectedPackage.name)}</strong>
       </div>
       <div class="checkout-price-row">
-        <span>Delivery cap</span>
-        <strong>${countFormatter.format(selectedPackage.limit)}</strong>
+        <span>${escapeHtml(tl("Delivery cap"))}</span>
+        <strong>${formatNumber(selectedPackage.limit, { maximumFractionDigits: 0 })}</strong>
       </div>
       <div class="checkout-price-divider checkout-price-divider-section" aria-hidden="true"></div>
     `;
-    el["checkout-price-subtotal"].textContent = currencyFormatter.format(selectedPackage.price);
-    el["checkout-price-vat"].textContent = currencyFormatter.format(selectedPackage.vat);
-    el["checkout-price-total"].textContent = currencyFormatter.format(selectedPackage.totalPrice);
+    el["checkout-price-subtotal"].textContent = formatCurrency(selectedPackage.price, { maximumFractionDigits: 2 });
+    el["checkout-price-vat"].textContent = formatCurrency(selectedPackage.vat, { maximumFractionDigits: 2 });
+    el["checkout-price-total"].textContent = formatCurrency(selectedPackage.totalPrice, { maximumFractionDigits: 2 });
   }
 
   if (el["checkout-recipient-summary"]) {
     el["checkout-recipient-summary"].innerHTML = `
-      ${definitionRow("Name", recipient.name || "Not filled")}
-      ${definitionRow("Email", recipient.email || "Not filled")}
-      ${recipient.recipient_type === "company" ? definitionRow("Company name", recipient.company_name || "Not filled") : ""}
+      ${definitionRow(tl("Name"), recipient.name || tl("Not filled"))}
+      ${definitionRow(t("checkout.field.email"), recipient.email || tl("Not filled"))}
+      ${recipient.recipient_type === "company" ? definitionRow(t("checkout.field.companyName"), recipient.company_name || tl("Not filled")) : ""}
     `;
   }
   if (el["checkout-language-summary"]) {
-    el["checkout-language-summary"].innerHTML = definitionRow("Language", languageLabel);
+    el["checkout-language-summary"].innerHTML = definitionRow(t("checkout.summary.language"), languageLabel);
   }
 }
 
 function continueFromPackageStep() {
   if (!packageStepIsValid()) {
-    setPackageStatus("Choose a package before continuing.", "error");
+    setPackageStatus(tl("Choose a package before continuing."), "error");
     return;
   }
   setCurrentStep("details");
@@ -308,14 +309,14 @@ function continueFromPackageStep() {
 
 async function continueFromDetailsStep() {
   if (!detailsStepIsValid()) {
-    setPaymentStatus("Complete the recipient fields before continuing.", "error");
+    setPaymentStatus(tl("Complete the recipient fields before continuing."), "error");
     return;
   }
 
   const selectedPackage = getSelectedPackage();
   if (!selectedPackage) {
     setCurrentStep("package");
-    setPackageStatus("Choose a package before continuing to payment.", "error");
+    setPackageStatus(tl("Choose a package before continuing to payment."), "error");
     return;
   }
 
@@ -339,7 +340,7 @@ function setCurrentStep(step) {
 async function preparePayment() {
   if (!detailsStepIsValid()) return;
   if (!state.config?.publishableKey) {
-    setPaymentStatus("Stripe publishable key missing. Add STRIPE_PUBLISHABLE_KEY to Vercel and reload.", "warning");
+    setPaymentStatus(tl("Stripe publishable key missing. Add STRIPE_PUBLISHABLE_KEY to Vercel and reload."), "warning");
     setPaymentLoading(false);
     el["checkout-payment-placeholder"].hidden = false;
     el["checkout-stripe-host"].hidden = true;
@@ -348,7 +349,7 @@ async function preparePayment() {
 
   const selectedPackage = getSelectedPackage();
   if (!selectedPackage) {
-    setPaymentStatus("Select a package before opening payment.", "error");
+    setPaymentStatus(tl("Select a package before opening payment."), "error");
     return;
   }
 
@@ -360,11 +361,11 @@ async function preparePayment() {
     return;
   }
 
-  setPaymentStatus("Preparing secure payment session.", "loading");
+  setPaymentStatus(tl("Preparing secure payment session."), "loading");
   setPaymentLoading(true, {
-    eyebrow: "Preparing payment",
-    title: "Creating your secure payment session.",
-    copy: "We are locking the order and opening the Stripe payment flow for this checkout.",
+    eyebrow: t("checkout.payment.loadingEyebrow"),
+    title: t("checkout.payment.loadingTitle"),
+    copy: t("checkout.payment.loadingCopy"),
   });
   el["checkout-payment-placeholder"].hidden = true;
   el["checkout-stripe-host"].hidden = true;
@@ -394,11 +395,11 @@ async function preparePayment() {
     });
 
     if (!result.ok) {
-      throw new Error(extractApiError(result) || "Failed to initialize payment.");
+      throw new Error(extractApiError(result) || tl("Failed to initialize payment."));
     }
     const clientSecret = result.payload?.message || result.payload?.clientSecret;
     if (!clientSecret) {
-      throw new Error("Payment intent client secret was missing.");
+      throw new Error(tl("Payment intent client secret was missing."));
     }
     state.paymentIntentClientSecret = clientSecret;
     state.paymentInitializedForPackageId = selectedPackage.id;
@@ -407,7 +408,7 @@ async function preparePayment() {
     setPaymentStatus("", "idle");
   } catch (error) {
     setPaymentLoading(false);
-    setPaymentStatus(error instanceof Error ? error.message : "Failed to initialize payment.", "error");
+    setPaymentStatus(error instanceof Error ? error.message : tl("Failed to initialize payment."), "error");
   } finally {
     togglePayButton(false);
   }
@@ -477,11 +478,11 @@ async function submitPayment() {
   state.submitting = true;
   togglePayButton(true);
   setPaymentLoading(true, {
-    eyebrow: "Confirming payment",
-    title: "Processing the card payment.",
-    copy: "Stripe is confirming the payment details and finalizing the order now.",
+    eyebrow: tl("Confirming payment"),
+    title: tl("Processing the card payment."),
+    copy: tl("Stripe is confirming the payment details and finalizing the order now."),
   });
-  setPaymentStatus("Confirming payment.", "loading");
+  setPaymentStatus(tl("Confirming payment."), "loading");
 
   try {
     const { error: submitError } = await state.elements.submit();
@@ -502,17 +503,17 @@ async function submitPayment() {
       throw error;
     }
 
-    setPaymentStatus("Payment completed.", "success");
+    setPaymentStatus(tl("Payment completed."), "success");
     showSuccessState({
       tone: "paid",
-      badge: "Paid",
-      title: "Order created successfully.",
-      copy: "Your payment completed and the order is now processing.",
-      nextStep: "We are processing the paid order now.",
+      badge: t("checkout.summary.paid"),
+      title: t("checkout.success.badge"),
+      copy: t("checkout.success.title"),
+      nextStep: tl("We are processing the paid order now."),
     });
   } catch (error) {
     setPaymentLoading(false);
-    setPaymentStatus(error?.message || "Payment failed.", "error");
+    setPaymentStatus(error?.message || tl("Payment failed."), "error");
   } finally {
     state.submitting = false;
     togglePayButton(false);
@@ -522,18 +523,18 @@ async function submitPayment() {
 async function submitInvoiceRequest() {
   if (state.invoiceSubmitting) return;
   if (!detailsStepIsValid()) {
-    setPaymentStatus("Complete the recipient fields before requesting an invoice.", "error");
+    setPaymentStatus(tl("Complete the recipient fields before requesting an invoice."), "error");
     return;
   }
 
   const selectedPackage = getSelectedPackage();
   if (!selectedPackage) {
-    setPaymentStatus("Select a package before requesting an invoice.", "error");
+    setPaymentStatus(tl("Select a package before requesting an invoice."), "error");
     return;
   }
 
   if (state.recipientType !== "company") {
-    setPaymentStatus("Invoice checkout is available only for company recipients.", "error");
+    setPaymentStatus(tl("Invoice checkout is available only for company recipients."), "error");
     return;
   }
 
@@ -562,19 +563,19 @@ async function submitInvoiceRequest() {
     const result = serverless;
 
     if (!result.ok) {
-      throw new Error(extractApiError(result) || "Failed to request invoice.");
+      throw new Error(extractApiError(result) || tl("Failed to request invoice."));
     }
 
     showSuccessState({
       tone: "invoice",
-      badge: "Invoice requested",
-      title: "Invoice request submitted.",
-      copy: "We created the order and will send the invoice to your email.",
-      nextStep: "Check your email for the invoice and follow-up details.",
+      badge: tl("Invoice requested"),
+      title: tl("Invoice request submitted."),
+      copy: tl("We created the order and will send the invoice to your email."),
+      nextStep: tl("Check your email for the invoice and follow-up details."),
     });
   } catch (error) {
     setInvoiceLoading(false);
-    setPaymentStatus(error?.message || "Failed to request invoice.", "error");
+    setPaymentStatus(error?.message || tl("Failed to request invoice."), "error");
   } finally {
     state.invoiceSubmitting = false;
     toggleInvoiceButton(false);
@@ -646,18 +647,18 @@ function showSuccessState({ tone = "paid", badge, title, copy, nextStep }) {
   if (el["checkout-success-title"]) el["checkout-success-title"].textContent = title;
   if (el["checkout-success-copy"]) el["checkout-success-copy"].textContent = copy;
   if (el["checkout-success-package"]) {
-    el["checkout-success-package"].textContent = getSelectedPackage()?.name || "Custom";
+    el["checkout-success-package"].textContent = getSelectedPackage()?.name || tl("Custom");
   }
   if (el["checkout-success-recipient"]) {
-    el["checkout-success-recipient"].textContent = el["recipient-email"]?.value.trim() || "Not provided";
+    el["checkout-success-recipient"].textContent = el["recipient-email"]?.value.trim() || tl("Not provided");
   }
   if (el["checkout-success-next-step"]) {
-    el["checkout-success-next-step"].textContent = nextStep || "We are processing the order now.";
+    el["checkout-success-next-step"].textContent = nextStep || t("checkout.success.nextCopy");
   }
-  el["checkout-stage-label"].textContent = "Completed";
+  el["checkout-stage-label"].textContent = tl("Completed");
   el["checkout-stage-title"].textContent = title;
   el["checkout-stage-copy"].textContent = copy;
-  el["checkout-stage-prompt"].textContent = "Current task: complete.";
+  el["checkout-stage-prompt"].textContent = tl("Current task: complete.");
   syncProgressRail("payment");
 }
 
@@ -792,7 +793,7 @@ async function fetchPackages() {
       return serverless.payload.message.map(normalizePackage);
     }
 
-    throw new Error(extractApiError(serverless) || "Failed to load packages.");
+    throw new Error(extractApiError(serverless) || tl("Failed to load packages."));
   });
 }
 
@@ -855,25 +856,25 @@ function syncStageHeader(step) {
   syncProgressRail(step);
 
   if (step === "payment") {
-    if (el["checkout-stage-label-payment"]) el["checkout-stage-label-payment"].textContent = "Step 3 of 3";
-    if (el["checkout-stage-title-payment"]) el["checkout-stage-title-payment"].textContent = "Secure payment";
+    if (el["checkout-stage-label-payment"]) el["checkout-stage-label-payment"].textContent = t("checkout.step3");
+    if (el["checkout-stage-title-payment"]) el["checkout-stage-title-payment"].textContent = t("checkout.title.payment");
     if (el["checkout-stage-prompt-payment"]) el["checkout-stage-prompt-payment"].textContent = getSelectedPackage()
-      ? "Current task: confirm payment."
-      : "Current task: review details. Payment is blocked until a package is selected.";
+      ? t("checkout.package.currentTaskPayment")
+      : t("checkout.package.blockedPayment");
     return;
   }
 
   if (step === "details") {
-    if (el["checkout-stage-label-details"]) el["checkout-stage-label-details"].textContent = "Step 2 of 3";
-    if (el["checkout-stage-title-details"]) el["checkout-stage-title-details"].textContent = "Buyer and delivery";
+    if (el["checkout-stage-label-details"]) el["checkout-stage-label-details"].textContent = t("checkout.step2");
+    if (el["checkout-stage-title-details"]) el["checkout-stage-title-details"].textContent = t("checkout.title.details");
     if (el["checkout-stage-prompt-details"]) el["checkout-stage-prompt-details"].textContent = detailsStepIsValid()
-      ? "Current task: details complete. You can continue to payment."
-      : "Current task: complete buyer details.";
+      ? t("checkout.package.currentTaskDetailsDone")
+      : t("checkout.package.currentTaskDetailsPending");
     return;
   }
 
-  if (el["checkout-stage-label"]) el["checkout-stage-label"].textContent = "Step 1 of 3";
-  if (el["checkout-stage-title"]) el["checkout-stage-title"].textContent = "Choose package";
+  if (el["checkout-stage-label"]) el["checkout-stage-label"].textContent = t("checkout.step1");
+  if (el["checkout-stage-title"]) el["checkout-stage-title"].textContent = t("checkout.title.package");
 }
 
 function syncProgressRail(step, allComplete = false) {

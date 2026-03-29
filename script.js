@@ -1,4 +1,13 @@
 import { getOrFetchSessionCache } from "./shared/session-bootstrap-cache.js";
+import {
+  formatCurrency as localeCurrency,
+  formatDateValue,
+  formatNumber as localeNumber,
+  localizedText as resolveLocalizedText,
+  subscribeLocale,
+  t,
+  tl,
+} from "./shared/i18n.js";
 
 const bundledAssetEntries = Object.entries(
   import.meta.glob("./assets/ios/*.{png,svg,jpg,jpeg}", {
@@ -16,17 +25,9 @@ const bundledAssetsByStem = new Map(
   })
 );
 
-const numberFormatter = new Intl.NumberFormat("en-US");
-const compactNumber = new Intl.NumberFormat("en-US", {
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
-const currencyCompact = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "EUR",
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
+const homeState = {
+  payload: null,
+};
 
 const legalReplacements = {
   sihtasutus: "SA",
@@ -151,20 +152,25 @@ function cardTheme(background, foreground) {
 
 function formatValue(value, type) {
   if (value == null) return "";
-  if (type === "count") return numberFormatter.format(Math.round(value));
+  if (type === "count") return localeNumber(Math.round(value), { maximumFractionDigits: 0 });
   if (type === "percentage") return `${(value * 100).toFixed(1)}%`;
-  if (type === "euro") return currencyCompact.format(value);
+  if (type === "euro") return currencyCompact(value);
   if (type === "unix_date") {
     const date = new Date(Number(value) * 1000);
-    return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString("en-GB");
+    return Number.isNaN(date.getTime()) ? String(value) : formatDateValue(date);
   }
-  return compactNumber.format(value);
+  return localeNumber(value, { notation: "compact", maximumFractionDigits: 1 });
 }
 
 function localizedText(value) {
-  if (!value) return "";
-  if (typeof value === "string") return value;
-  return value.en || value.et || "";
+  return resolveLocalizedText(value);
+}
+
+function currencyCompact(value) {
+  return localeCurrency(value, {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  });
 }
 
 function hasLowercaseLetters(value) {
@@ -277,11 +283,11 @@ function escapeHtml(value) {
 }
 
 function searchTypeLabel(type) {
-  return type === "company" ? "Company" : "Person";
+  return type === "company" ? tl("Company") : tl("Person");
 }
 
 function searchMetaLabel(item) {
-  return item.id || "Unknown";
+  return item.id || tl("Unknown");
 }
 
 function searchIconSvg(type) {
@@ -321,13 +327,13 @@ function renderSearchUI() {
   const hasEnoughInput = trimmedQuery.length >= 2;
 
   if (searchState.status === "loading") {
-    status.textContent = `Searching for “${trimmedQuery}”…`;
+    status.textContent = t("search.loading", { query: trimmedQuery }) || `Searching for “${trimmedQuery}”…`;
     status.classList.add("is-loading");
   } else if (searchState.status === "routing") {
-    status.textContent = "Opening selection…";
+    status.textContent = tl("Opening selection…");
     status.classList.add("is-routing");
   } else if (searchState.status === "error") {
-    status.textContent = searchState.errorMessage || "Search failed. Please try again.";
+    status.textContent = searchState.errorMessage || tl("Search failed. Please try again.");
     status.classList.add("is-error");
   }
 
@@ -337,13 +343,13 @@ function renderSearchUI() {
 
   if (searchState.status === "error") {
     results.hidden = false;
-    results.innerHTML = '<div class="hero-search-error">Search is temporarily unavailable. Please retry.</div>';
+    results.innerHTML = `<div class="hero-search-error">${escapeHtml(tl("Search is temporarily unavailable. Please retry."))}</div>`;
     return;
   }
 
   if (searchState.status === "empty") {
     results.hidden = false;
-    results.innerHTML = '<div class="hero-search-empty">No matches yet. Try a broader company, person, or code search.</div>';
+    results.innerHTML = `<div class="hero-search-empty">${escapeHtml(tl("No matches yet. Try a broader company, person, or code search."))}</div>`;
     return;
   }
 
@@ -407,7 +413,7 @@ async function performUnifiedSearch(query, token) {
     });
 
     if (!response.ok) {
-      throw new Error(`Search failed with status ${response.status}`);
+      throw new Error(`${tl("Search failed.")} (${response.status})`);
     }
 
     const payload = await response.json();
@@ -427,7 +433,7 @@ async function performUnifiedSearch(query, token) {
     if (token !== searchState.requestToken) return;
     searchState.results = [];
     searchState.status = "error";
-    searchState.errorMessage = error instanceof Error ? error.message : "Search failed.";
+    searchState.errorMessage = error instanceof Error ? error.message : tl("Search failed.");
     renderSearchUI();
   } finally {
     if (searchState.activeController === controller) {
@@ -529,7 +535,7 @@ function renderTrending(data) {
                     <article class="trending-card-minimal">
                       <div class="top-meta">
                         <span class="type-chip">${item.type}</span>
-                        <span class="value-chip">${formatValue(item.value, item.value_type)} views</span>
+                        <span class="value-chip">${formatValue(item.value, item.value_type)} ${escapeHtml(tl("Views"))}</span>
                       </div>
                       <h3 class="trend-name">${transformedName(item.name)}</h3>
                       <p class="trend-subline">${item.identifier}</p>
@@ -581,10 +587,10 @@ function renderLeaderboards(data) {
         <article class="leaderboard-card">
           <div class="board-head">
             <div>
-              <span class="board-kicker">${localizedText(board.subtitle) || "Live board"}</span>
+              <span class="board-kicker">${localizedText(board.subtitle) || tl("Live board")}</span>
               <h3 class="board-title">${localizedText(board.title)}</h3>
             </div>
-            <span class="count-chip">${board.items.length} ranked</span>
+            <span class="count-chip">${localeNumber(board.items.length, { maximumFractionDigits: 0 })} ${escapeHtml(tl("ranked"))}</span>
           </div>
           <ol class="rank-list">
             ${board.items
@@ -600,7 +606,7 @@ function renderLeaderboards(data) {
               )
               .join("")}
           </ol>
-          <a class="item-meta" href="/filters/">View all</a>
+          <a class="item-meta" href="/filters/">${escapeHtml(tl("View all"))}</a>
         </article>
       `
     )
@@ -707,7 +713,7 @@ function renderCounties(data) {
         <article class="county-card">
           <div class="county-head">
             <div>
-              <p class="count-label">County</p>
+              <p class="count-label">${escapeHtml(tl("County"))}</p>
               <h3 class="county-name">${county.name}</h3>
             </div>
           </div>
@@ -759,7 +765,7 @@ function renderCatalogBoard(board, rootId) {
             <div class="catalog-metric">
               <div class="catalog-value">${formatValue(item.value, item.value_type)}</div>
               <p class="item-subtitle catalog-label">
-                ${localizedText(item.value_description) || "Member count"}
+                ${localizedText(item.value_description) || tl("Member count")}
               </p>
             </div>
           </div>
@@ -814,6 +820,7 @@ async function loadHomeData() {
       fetchHomePayload
     );
 
+    homeState.payload = payload;
     renderTrending(payload.trending || []);
     renderLeaderboards(payload.leaderboards || []);
     renderCounties(payload.counties || []);
@@ -834,7 +841,7 @@ async function loadHomeData() {
 
 async function fetchHomePayload() {
   let payload = null;
-  const sources = ["/api/home", "/data/home.json", "./data/home.json"];
+  const sources = ["/data/home.json", "./data/home.json", "/api/home"];
 
   for (const source of sources) {
     try {
@@ -869,20 +876,37 @@ async function prefetchFiltersBootstrap() {
 }
 
 function scheduleHomeDataLoad() {
-  const run = () => {
-    void loadHomeData();
+  void loadHomeData();
+
+  const prefetch = () => {
     void prefetchFiltersBootstrap();
   };
 
   if ("requestIdleCallback" in window) {
-    window.requestIdleCallback(run, { timeout: 1200 });
+    window.requestIdleCallback(prefetch, { timeout: 1200 });
     return;
   }
 
-  window.setTimeout(run, 0);
+  window.setTimeout(prefetch, 0);
 }
 
 if (document.body.classList.contains("page-home")) {
   initializeHomeSearch();
   scheduleHomeDataLoad();
+  subscribeLocale(() => {
+    renderSearchUI();
+    if (!homeState.payload) return;
+    renderTrending(homeState.payload.trending || []);
+    renderLeaderboards(homeState.payload.leaderboards || []);
+    renderCounties(homeState.payload.counties || []);
+    renderCatalogBoard(
+      (homeState.payload.catalog || []).find((board) => board.key === "political_parties"),
+      "parties-grid"
+    );
+    renderTestimonials(homeState.payload.testimonials || []);
+    renderCatalogBoard(
+      (homeState.payload.catalog || []).find((board) => board.key === "publicly_traded_companies"),
+      "public-grid"
+    );
+  });
 }

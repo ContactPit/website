@@ -1,3 +1,12 @@
+import {
+  formatCurrency as localeCurrency,
+  formatDateValue,
+  formatNumber,
+  subscribeLocale,
+  t,
+  tl,
+} from "../shared/i18n.js";
+
 const EMAIL_ICON_URL = new URL("../assets/ios/email.svg", import.meta.url).href;
 const PHONE_ICON_URL = new URL("../assets/ios/phone.svg", import.meta.url).href;
 const REGISTER_ICON_URL = new URL("../assets/ios/rik.png", import.meta.url).href;
@@ -5,6 +14,7 @@ const APPLE_MAPS_TOKEN = import.meta.env.VITE_APPLE_MAPS_TOKEN || "";
 const MAP_MARKER_COLOR = "#9422db";
 
 let appleMapKitPromise = null;
+let personPayload = null;
 
 function chevronIcon(direction = "right") {
   const rotation = direction === "left" ? 180 : 0;
@@ -55,41 +65,37 @@ function numberOrNull(value) {
 }
 
 function formatInteger(value) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) return "No data";
-  return new Intl.NumberFormat("en-US", {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return tl("No data");
+  return formatNumber(Number(value), {
     maximumFractionDigits: 0,
-  }).format(Number(value));
+  });
 }
 
 function formatDecimal(value, maximumFractionDigits = 1) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) return "No data";
-  return new Intl.NumberFormat("en-US", {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return tl("No data");
+  return formatNumber(Number(value), {
     minimumFractionDigits: 0,
     maximumFractionDigits,
-  }).format(Number(value));
+  });
 }
 
 function formatCurrency(value) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) return "No data";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "EUR",
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return tl("No data");
+  return localeCurrency(Number(value), {
     maximumFractionDigits: Math.abs(Number(value)) >= 100 ? 0 : 2,
-  }).format(Number(value));
+  });
 }
 
 function formatCompactCurrency(value) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) return "No data";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "EUR",
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return tl("No data");
+  return localeCurrency(Number(value), {
     notation: "compact",
     maximumFractionDigits: 1,
-  }).format(Number(value));
+  });
 }
 
 function formatPercent(value) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) return "No data";
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return tl("No data");
   return `${formatDecimal(value, 1)}%`;
 }
 
@@ -105,14 +111,10 @@ function initials(name) {
 
 function formatDate(value) {
   const text = textOrNull(value);
-  if (!text) return "No data";
+  if (!text) return tl("No data");
   const date = new Date(text);
   if (Number.isNaN(date.getTime())) return text;
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);
+  return formatDateValue(date);
 }
 
 function countryFlagEmoji(value) {
@@ -141,15 +143,15 @@ function countryFlagEmoji(value) {
 function legalStatusMeta(value) {
   const normalized = String(value || "").trim().toUpperCase();
   if (normalized === "C") {
-    return { label: "Citizen", tone: "positive" };
+    return { label: tl("Citizen"), tone: "positive" };
   }
   if (normalized === "E") {
-    return { label: "E-resident", tone: "neutral" };
+    return { label: tl("E-resident"), tone: "neutral" };
   }
   if (normalized === "F") {
-    return { label: "Foreigner", tone: "warning" };
+    return { label: tl("Foreigner"), tone: "warning" };
   }
-  return { label: "Unknown", tone: "neutral" };
+  return { label: tl("Unknown"), tone: "neutral" };
 }
 
 function toneBadge(label, tone) {
@@ -183,11 +185,11 @@ function firstContact(contacts, types) {
 
 function contactTypeMeta(type) {
   const normalized = String(type || "").trim().toUpperCase();
-  if (normalized === "EMAIL") return { label: "Email", icon: "email" };
+  if (normalized === "EMAIL") return { label: tl("Email"), icon: "email" };
   if (["PHONE", "MOBILE", "MOB", "CELL", "CELLPHONE", "MOBILE_PHONE"].includes(normalized)) {
-    return { label: "Phone", icon: "phone" };
+    return { label: tl("Phone"), icon: "phone" };
   }
-  return { label: normalized || "Contact", icon: "website" };
+  return { label: normalized || tl("Contact"), icon: "website" };
 }
 
 function iconSvg(name) {
@@ -316,7 +318,7 @@ function contactActionsMarkup(contacts) {
     .filter(Boolean)
     .join("");
 
-  return markup || '<p class="company-empty-copy">No direct contact channels are available for this person.</p>';
+  return markup || `<p class="company-empty-copy">${escapeHtml(tl("No direct contact channels are available for this person."))}</p>`;
 }
 
 function companySlug(name, registryCode) {
@@ -336,12 +338,12 @@ function companyLinkHref(company) {
 }
 
 function roleText(role) {
-  return textOrNull(role?.name) || textOrNull(role?.type) || "Role";
+  return textOrNull(role?.name) || textOrNull(role?.type) || tl("Role");
 }
 
 function roleDateText(role) {
   const date = textOrNull(role?.start_date);
-  return date ? `Since ${date}` : null;
+  return date ? `${tl("Since")} ${date}` : null;
 }
 
 function companyCardMarkup(company) {
@@ -357,7 +359,7 @@ function companyCardMarkup(company) {
       `
     )
     .join("");
-  const companyName = textOrNull(company?.name) || "Unknown company";
+  const companyName = textOrNull(company?.name) || t("entity.unknownCompany");
   const registryCode = textOrNull(company?.registry_code);
   const headerContent = `
     <div class="company-person-avatar">${escapeHtml(initials(companyName))}</div>
@@ -372,13 +374,13 @@ function companyCardMarkup(company) {
     <article class="person-company-card">
       ${
         href
-          ? `<a class="person-company-card-head person-company-card-head-link" href="${escapeHtml(href)}" aria-label="Open ${escapeHtml(companyName)} company view">${headerContent}</a>`
+          ? `<a class="person-company-card-head person-company-card-head-link" href="${escapeHtml(href)}" aria-label="${escapeHtml(tl("Open company view"))}: ${escapeHtml(companyName)}">${headerContent}</a>`
           : `<div class="person-company-card-head">${headerContent}</div>`
       }
       ${
         roleItems
           ? `<ul class="person-role-list">${roleItems}</ul>`
-          : '<p class="company-empty-copy">No role records are available for this company.</p>'
+          : `<p class="company-empty-copy">${escapeHtml(tl("No role records are available for this company."))}</p>`
       }
     </article>
   `;
@@ -400,7 +402,7 @@ function certificateCard(title, items, titleGetter) {
                     <div class="company-data-row">
                       <div class="company-data-row-copy">
                         <span>${escapeHtml(titleGetter(item))}</span>
-                        <p>${escapeHtml([start || "Unknown start", end || "No expiry"].join(" • "))}</p>
+                        <p>${escapeHtml([start || tl("Unknown start"), end || tl("No expiry")].join(" • "))}</p>
                       </div>
                     </div>
                   `;
@@ -408,7 +410,7 @@ function certificateCard(title, items, titleGetter) {
                 .join("")}
             </div>
           `
-          : '<p class="company-empty-copy">No records are available.</p>'
+          : `<p class="company-empty-copy">${escapeHtml(tl("No records are available."))}</p>`
       }
     </article>
   `;
@@ -433,7 +435,7 @@ function uniqueCompanyLocations(person) {
       const companyName =
         companyNameByRegistry.get(String(companyData?.registry_code || "")) ||
         textOrNull(companyData?.name) ||
-        (registryCode ? `Company ${registryCode}` : `Company ${index + 1}`);
+        (registryCode ? t("entity.companyWithCode", { code: registryCode }) : t("entity.companyNumbered", { index: index + 1 }));
       const address = companyData?.address || {};
       const addressText = textOrNull(address?.address_long) || textOrNull(address?.address);
       const coordinates = normalizeCoordinates(address?.coordinates || companyData?.coordinates);
@@ -466,7 +468,7 @@ function googleMapsEmbedUrlForLocations(locations) {
 
 function appleMapsHrefForLocation(location) {
   const addressText = textOrNull(location?.addressText);
-  const label = textOrNull(location?.companyName) || addressText || "Location";
+  const label = textOrNull(location?.companyName) || addressText || tl("Location");
   const params = new URLSearchParams();
 
   if (location?.coordinates) {
@@ -537,7 +539,7 @@ function renderAppleLocationMap(container, locations) {
   const annotations = points.map(
     (location, index) =>
       new mapkit.MarkerAnnotation(new mapkit.Coordinate(location.coordinates.latitude, location.coordinates.longitude), {
-        title: location.companyName || `Location ${index + 1}`,
+        title: location.companyName || `${tl("Location")} ${index + 1}`,
         subtitle: location.addressText || "",
         color: MAP_MARKER_COLOR,
         glyphColor: "#ffffff",
@@ -586,7 +588,7 @@ function locationMapMarkup(locations) {
         <div class="company-map-embed-shell company-location-map person-location-map">
           <div class="company-map-orb"><span></span><span></span><span></span></div>
         </div>
-        <p class="company-empty-copy">No coordinates are available for this person's linked company locations.</p>
+        <p class="company-empty-copy">${escapeHtml(tl("No coordinates are available for this person's linked company locations."))}</p>
       </div>
     `;
   }
@@ -626,7 +628,7 @@ function locationMapMarkup(locations) {
           .map((location) => {
             const href = companyLinkHref({ name: location.companyName, registry_code: location.registryCode });
             const content = `
-              <div class="company-person-avatar">${escapeHtml(initials(location.companyName || "Company"))}</div>
+              <div class="company-person-avatar">${escapeHtml(initials(location.companyName || tl("Company")))}</div>
               <div class="company-person-copy person-location-legend-copy">
                 <h3>${escapeHtml(location.companyName)}</h3>
                 ${location.registryCode ? `<p>${escapeHtml(location.registryCode)}</p>` : ""}
@@ -655,7 +657,7 @@ function chartCard(title, points, formatter, scope) {
             <h3>${escapeHtml(title)}</h3>
           </div>
         </div>
-        <p class="company-empty-copy">No ${escapeHtml(scope.toLowerCase())} data is available.</p>
+        <p class="company-empty-copy">${escapeHtml(tl("No data"))}</p>
       </article>
     `;
   }
@@ -739,8 +741,8 @@ function personFinancialInitialPeriod(companiesData) {
 }
 
 function personFinancialPeriodLabel(period) {
-  if (period === "last-quarter") return "Last quarter";
-  if (period === "last-4-quarters") return "Last 4 quarters";
+  if (period === "last-quarter") return tl("Last quarter");
+  if (period === "last-4-quarters") return tl("Last 4 quarters");
   if (String(period).startsWith("year:")) return String(period).slice(5);
   return "";
 }
@@ -752,7 +754,7 @@ function companyForRegistry(person, registryCode) {
 function companyReference(person, registryCode) {
   const company = companyForRegistry(person, registryCode);
   const fallback = {
-    name: textOrNull(company?.name) || `Company ${registryCode || ""}`.trim() || "Unknown company",
+    name: textOrNull(company?.name) || (registryCode ? t("entity.companyWithCode", { code: registryCode }) : t("entity.unknownCompany")),
     registry_code: registryCode,
   };
 
@@ -795,9 +797,9 @@ function profitabilityMarginRows(rows, emptyLabel) {
   return `
     <div class="person-financial-margin-table">
       <div class="person-financial-margin-row is-head">
-        <span class="person-financial-margin-label is-company">Company</span>
-        <span class="person-financial-margin-label">Operating</span>
-        <span class="person-financial-margin-label">Net</span>
+        <span class="person-financial-margin-label is-company">${escapeHtml(tl("Company"))}</span>
+        <span class="person-financial-margin-label">${escapeHtml(tl("Operating"))}</span>
+        <span class="person-financial-margin-label">${escapeHtml(tl("Net"))}</span>
       </div>
       ${list
         .map((row) => {
@@ -822,7 +824,7 @@ function profitabilityMarginRows(rows, emptyLabel) {
   `;
 }
 
-function personFinancialSectionMarkup({ title, description, content, eyebrow = "Financial" }) {
+function personFinancialSectionMarkup({ title, description, content, eyebrow = tl("Financial") }) {
   const hasFloatingRail = String(content || "").includes("company-paged-list-controls");
   return `
     <section class="company-subsection-grid">
@@ -855,12 +857,12 @@ function financialPoolChips({ profitPool, lossPool }) {
     <div class="person-financial-pool-chips">
       <span class="person-financial-pool-chip">
         <span class="person-financial-pool-dot"></span>
-        <span>Profit pool</span>
+        <span>${escapeHtml(tl("Profit pool"))}</span>
         <strong>${escapeHtml(formatCompactCurrency(profitPool))}</strong>
       </span>
       <span class="person-financial-pool-chip is-negative">
         <span class="person-financial-pool-dot is-negative"></span>
-        <span>Loss pool</span>
+        <span>${escapeHtml(tl("Loss pool"))}</span>
         <strong>${escapeHtml(formatCompactCurrency(-lossPool))}</strong>
       </span>
     </div>
@@ -1197,27 +1199,27 @@ function buildTaxFinancialPanel(person, companiesData, period, activePeriod) {
     <div class="company-financial-period-panel${activePeriod === period ? " is-active" : ""}" data-person-financial-period-panel="${escapeHtml(period)}">
       <div class="company-subsection-stack person-financial-panel-stack">
         ${personFinancialSectionMarkup({
-          title: "Turnover",
-          description: `EMTA-reported turnover for ${periodLabel} across linked companies.`,
+          title: tl("Turnover"),
+          description: t("person.financial.turnoverDescription", { period: periodLabel }),
           content: `
             ${financialSummaryHead({
               label: personFinancialPeriodLabel(period),
               value: formatCompactCurrency(totalTurnover),
-              note: rows.length ? `${rows.length} linked companies with turnover in the selected period.` : "No turnover records are available for the selected period.",
+              note: rows.length ? t("person.financial.turnoverNote", { count: rows.length }) : tl("No turnover records are available for the selected period."),
             })}
-            ${financialCompanyRows(rows, "No turnover records are available for the selected period.", formatCurrency)}
+            ${financialCompanyRows(rows, tl("No turnover records are available for the selected period."), formatCurrency)}
           `,
         })}
         ${personFinancialSectionMarkup({
-          title: "Tax debt",
-          description: "Current tax debt balances across linked companies.",
+          title: tl("Tax debt"),
+          description: tl("Current tax debt balances across linked companies."),
           content: `
             ${financialSummaryHead({
-              label: "Current total",
+              label: tl("Current total"),
               value: formatCompactCurrency(totalDebt),
-              note: debtRows.length ? `${debtRows.length} linked companies currently show tax debt.` : "No linked companies currently show tax debt.",
+              note: debtRows.length ? t("person.financial.taxDebtNote", { count: debtRows.length }) : tl("No linked companies currently show tax debt."),
             })}
-            ${financialCompanyRows(debtRows, "No linked companies currently show tax debt.", formatCurrency)}
+            ${financialCompanyRows(debtRows, tl("No linked companies currently show tax debt."), formatCurrency)}
           `,
         })}
       </div>
@@ -1250,30 +1252,30 @@ function buildAnnualFinancialPanel(person, companiesData, year, activePeriod) {
     <div class="company-financial-period-panel${activePeriod === panelKey ? " is-active" : ""}" data-person-financial-period-panel="${escapeHtml(panelKey)}">
       <div class="company-subsection-stack person-financial-panel-stack">
         ${personFinancialSectionMarkup({
-          title: "Revenue",
-          description: `Annual income statement revenue by linked company for ${year}.`,
+          title: tl("Revenue"),
+          description: t("person.financial.revenueDescription", { year }),
           content: `
             ${financialPieChartMarkup(
               revenueRows,
               totalRevenue,
               formatCompactCurrency(totalRevenue),
-              `No linked companies reported revenue in ${year}.`
+              t("person.financial.noRevenueForYear", { year })
             )}
           `,
         })}
         ${
           profitabilityRows.length
             ? personFinancialSectionMarkup({
-                title: "Profit",
-                description: `Net profit contribution by linked company for ${year}.`,
+                title: tl("Profit"),
+                description: t("person.financial.profitDescription", { year }),
                 content: `
                   ${financialSummaryHead({
-                    label: `${year} net profit`,
+                    label: t("person.financial.netProfitLabel", { year }),
                     value: formatCompactCurrency(totalNetProfit),
-                    note: "Positive and negative company contributions combined.",
+                    note: tl("Positive and negative company contributions combined."),
                   })}
                   ${financialPoolChips({ profitPool, lossPool })}
-                  ${financialCompanyRows(profitRows, `No net profit figures are available for ${year}.`, formatCurrency, (row) => row.netProfit)}
+                  ${financialCompanyRows(profitRows, t("person.financial.noNetProfitForYear", { year }), formatCurrency, (row) => row.netProfit)}
                 `,
               })
             : ""
@@ -1281,9 +1283,9 @@ function buildAnnualFinancialPanel(person, companiesData, year, activePeriod) {
         ${
           profitabilityRows.length
             ? personFinancialSectionMarkup({
-                title: "Profit margins",
-                description: `Operating and net margin standings for linked companies in ${year}.`,
-                content: profitabilityMarginRows(marginRows, `No profitability margin data is available for ${year}.`),
+                title: tl("Profit margins"),
+                description: t("person.financial.profitMarginsDescription", { year }),
+                content: profitabilityMarginRows(marginRows, t("person.financial.noProfitabilityForYear", { year })),
               })
             : ""
         }
@@ -1320,7 +1322,7 @@ function personFinancialPeriodSelectorMarkup(years, activePeriod, hasTaxData) {
         role="tab"
         aria-selected="${activePeriod === "last-quarter" ? "true" : "false"}"
       >
-        Last quarter
+        ${escapeHtml(tl("Last quarter"))}
       </button>
       <button
         class="company-toggle-button${activePeriod === "last-4-quarters" ? " is-active" : ""}"
@@ -1329,7 +1331,7 @@ function personFinancialPeriodSelectorMarkup(years, activePeriod, hasTaxData) {
         role="tab"
         aria-selected="${activePeriod === "last-4-quarters" ? "true" : "false"}"
       >
-        Last 4 quarters
+        ${escapeHtml(tl("Last 4 quarters"))}
       </button>
     `
     : "";
@@ -1337,7 +1339,7 @@ function personFinancialPeriodSelectorMarkup(years, activePeriod, hasTaxData) {
   if (!yearButtons && !taxButtons) return "";
 
   return `
-    <div class="company-financial-period-nav person-financial-period-nav" role="tablist" aria-label="Person financial period selection">
+    <div class="company-financial-period-nav person-financial-period-nav" role="tablist" aria-label="${escapeHtml(tl("Person financial period selection"))}">
       ${yearButtons}
       ${taxButtons}
     </div>
@@ -1346,14 +1348,14 @@ function personFinancialPeriodSelectorMarkup(years, activePeriod, hasTaxData) {
 
 function buildSummary(person) {
   const bits = [
-    person?.age !== null && person?.age !== undefined ? `${person.age} years old` : null,
-    textOrNull(person?.birth_date) ? `Born ${formatDate(person.birth_date)}` : null,
+    person?.age !== null && person?.age !== undefined ? t("person.summary.age", { age: person.age }) : null,
+    textOrNull(person?.birth_date) ? t("person.summary.born", { date: formatDate(person.birth_date) }) : null,
     countryFlagEmoji(person?.country_code) ? `${countryFlagEmoji(person.country_code)} ${person.country_code}` : textOrNull(person?.country_code),
   ].filter(Boolean);
   if (!bits.length) {
-    return "Person intelligence profile built from ContactPit person, company, contact, and tax data.";
+    return tl("Person intelligence profile built from ContactPit person, company, contact, and tax data.");
   }
-  return `${bits.join(" • ")}. Person intelligence profile built from ContactPit person, company, contact, and tax data.`;
+  return `${bits.join(" • ")}. ${tl("Person intelligence profile built from ContactPit person, company, contact, and tax data.")}`;
 }
 
 function buildOverviewPanelMarkup({ person, companies }) {
@@ -1363,42 +1365,42 @@ function buildOverviewPanelMarkup({ person, companies }) {
         <div class="company-subsection-stack">
           <section class="company-subsection-grid">
             <div class="company-subsection-copy">
-              <p class="company-section-eyebrow">Overview</p>
-              <h3>Roles in companies</h3>
-              <p>All linked company roles stay grouped in the first overview section.</p>
+              <p class="company-section-eyebrow">${escapeHtml(tl("Overview"))}</p>
+              <h3>${escapeHtml(tl("Roles in companies"))}</h3>
+              <p>${escapeHtml(tl("All linked company roles stay grouped in the first overview section."))}</p>
             </div>
             <article class="company-section-card">
               ${
                 companies.length
                   ? `<div class="person-company-list">${companies.map((company) => companyCardMarkup(company)).join("")}</div>`
-                  : '<p class="company-empty-copy">No linked companies are available for this person.</p>'
+                  : `<p class="company-empty-copy">${escapeHtml(tl("No linked companies are available for this person."))}</p>`
               }
             </article>
           </section>
 
           <section class="company-subsection-grid">
             <div class="company-subsection-copy">
-              <p class="company-section-eyebrow">Certificates</p>
-              <h3>Competence certificates</h3>
-              <p>Professional competence certificates are shown as their own overview section.</p>
+              <p class="company-section-eyebrow">${escapeHtml(tl("Certificates"))}</p>
+              <h3>${escapeHtml(tl("Competence certificates"))}</h3>
+              <p>${escapeHtml(tl("Professional competence certificates are shown as their own overview section."))}</p>
             </div>
             ${certificateCard(
-              "Competence certificates",
+              tl("Competence certificates"),
               person?.kutsetunnistused,
-              (item) => textOrNull(item?.professional_standard) || textOrNull(item?.professionalStandard) || "Unknown certificate"
+              (item) => textOrNull(item?.professional_standard) || textOrNull(item?.professionalStandard) || tl("Unknown certificate")
             )}
           </section>
 
           <section class="company-subsection-grid">
             <div class="company-subsection-copy">
-              <p class="company-section-eyebrow">Certificates</p>
-              <h3>Authorization certificates</h3>
-              <p>Authorization certificates are separated into the third overview section.</p>
+              <p class="company-section-eyebrow">${escapeHtml(tl("Certificates"))}</p>
+              <h3>${escapeHtml(tl("Authorization certificates"))}</h3>
+              <p>${escapeHtml(tl("Authorization certificates are separated into the third overview section."))}</p>
             </div>
             ${certificateCard(
-              "Authorization certificates",
+              tl("Authorization certificates"),
               person?.padevustunnistused,
-              (item) => textOrNull(item?.registration_number) || textOrNull(item?.registrationNumber) || "Unknown certificate"
+              (item) => textOrNull(item?.registration_number) || textOrNull(item?.registrationNumber) || tl("Unknown certificate")
             )}
           </section>
         </div>
@@ -1414,9 +1416,9 @@ function buildLocationsPanelMarkup({ locations }) {
         <div class="company-subsection-stack">
           <section class="company-subsection-grid">
             <div class="company-subsection-copy">
-              <p class="company-section-eyebrow">Locations</p>
-              <h3>Associated company locations</h3>
-              <p>The locations tab plots linked company coordinates on a shared map and keeps the associated companies visible beneath it.</p>
+              <p class="company-section-eyebrow">${escapeHtml(tl("Locations"))}</p>
+              <h3>${escapeHtml(tl("Associated company locations"))}</h3>
+              <p>${escapeHtml(tl("The locations tab plots linked company coordinates on a shared map and keeps the associated companies visible beneath it."))}</p>
             </div>
             <article class="company-section-card">
               ${locationMapMarkup(locations)}
@@ -1451,7 +1453,7 @@ function buildFinancialPanelMarkup({ person, companiesData, activeFinancialPerio
                 ${periodsMarkup}
               </div>
             `
-            : '<article class="company-section-card"><p class="company-empty-copy">No company tax or financial records are available for this person.</p></article>'
+            : `<article class="company-section-card"><p class="company-empty-copy">${escapeHtml(tl("No company tax or financial records are available for this person."))}</p></article>`
         }
       </div>
     </section>
@@ -1459,7 +1461,7 @@ function buildFinancialPanelMarkup({ person, companiesData, activeFinancialPerio
 }
 
 function buildPersonMarkup(person, slug) {
-  const fullName = [textOrNull(person?.first_name), textOrNull(person?.last_name)].filter(Boolean).join(" ") || "Unknown person";
+  const fullName = [textOrNull(person?.first_name), textOrNull(person?.last_name)].filter(Boolean).join(" ") || tl("Unknown person");
   const legalStatus = legalStatusMeta(person?.legal_status);
   const overviewFlag = countryFlagEmoji(person?.country_code);
   const locations = uniqueCompanyLocations(person);
@@ -1475,24 +1477,24 @@ function buildPersonMarkup(person, slug) {
         <div class="company-hero-card person-hero-card">
           <div class="company-floating-rail">
             ${compactFloatingAction({
-              label: "Email",
+              label: tl("Email"),
               value: null,
               href: emailContact ? `mailto:${emailContact.value}` : null,
               icon: "email",
             })}
             ${compactFloatingAction({
-              label: "Phone",
+              label: tl("Phone"),
               value: null,
               href: phoneContact ? `tel:${phoneContact.value.replace(/\s+/g, "")}` : null,
               icon: "phone",
             })}
             ${floatingStat({
-              label: "Views",
+              label: tl("Views"),
               value: formatInteger(person?.total_view_count || 0),
               icon: "eye",
             })}
             ${floatingStat({
-              label: "Favorites",
+              label: tl("Favorites"),
               value: formatInteger(person?.total_favorite_count || 0),
               icon: "heart",
             })}
@@ -1506,10 +1508,10 @@ function buildPersonMarkup(person, slug) {
             </div>
             <div class="company-hero-meta-layout">
               <div class="company-info-grid company-info-grid-hero">
-                ${infoItem("Age", person?.age !== null && person?.age !== undefined ? `${person.age} years` : null)}
-                ${infoItem("Birth date", formatDate(person?.birth_date))}
-                ${infoItem("Legal status", legalStatus.label)}
-                ${infoItem("Country", overviewFlag ? `${overviewFlag} ${person.country_code}` : person?.country_code)}
+                ${infoItem(tl("Age"), person?.age !== null && person?.age !== undefined ? `${person.age} ${tl("years")}` : null)}
+                ${infoItem(tl("Birth date"), formatDate(person?.birth_date))}
+                ${infoItem(tl("Legal status"), legalStatus.label)}
+                ${infoItem(tl("Country"), overviewFlag ? `${overviewFlag} ${person.country_code}` : person?.country_code)}
               </div>
             </div>
           </div>
@@ -1517,10 +1519,10 @@ function buildPersonMarkup(person, slug) {
         </div>
       </section>
 
-      <nav class="company-jump-nav person-jump-nav" aria-label="Person section navigation" role="tablist">
-        <button class="is-active" type="button" data-person-tab-toggle="overview" role="tab" aria-selected="true">Overview</button>
-        <button type="button" data-person-tab-toggle="financial" role="tab" aria-selected="false">Financial</button>
-        <button type="button" data-person-tab-toggle="locations" role="tab" aria-selected="false">Locations</button>
+      <nav class="company-jump-nav person-jump-nav" aria-label="${escapeHtml(tl("Person section navigation"))}" role="tablist">
+        <button class="is-active" type="button" data-person-tab-toggle="overview" role="tab" aria-selected="true">${escapeHtml(tl("Overview"))}</button>
+        <button type="button" data-person-tab-toggle="financial" role="tab" aria-selected="false">${escapeHtml(tl("Financial"))}</button>
+        <button type="button" data-person-tab-toggle="locations" role="tab" aria-selected="false">${escapeHtml(tl("Locations"))}</button>
       </nav>
 
       ${companiesData.length
@@ -1653,7 +1655,7 @@ async function setupAppleLocationMaps(scope = document) {
 async function loadPerson() {
   const slug = currentSlug();
   if (!slug) {
-    renderState('<p class="detail-state">Missing person slug.</p>');
+    renderState(`<p class="detail-state">${escapeHtml(tl("Missing person slug."))}</p>`);
     return;
   }
 
@@ -1665,23 +1667,31 @@ async function loadPerson() {
     });
 
     if (!response.ok) {
-      throw new Error(response.status === 404 ? "Person not found." : `Failed to load person (${response.status}).`);
+      throw new Error(response.status === 404 ? tl("Person not found.") : `${tl("Failed to load person.")} (${response.status}).`);
     }
 
     const payload = await response.json();
+    personPayload = payload;
     const person = payload?.message;
     if (!person) {
-      throw new Error("Person payload is missing.");
+      throw new Error(tl("Person payload is missing."));
     }
 
-    const fullName = [person.first_name, person.last_name].filter(Boolean).join(" ") || "Unknown person";
-    document.title = `ContactPit | ${fullName}`;
+    const fullName = [person.first_name, person.last_name].filter(Boolean).join(" ") || tl("Unknown person");
+    document.title = t("meta.person.entityTitle", { name: fullName });
 
     renderState(buildPersonMarkup(person, slug));
     setupInteractions();
   } catch (error) {
-    renderState(`<p class="detail-state">${escapeHtml(error instanceof Error ? error.message : "Failed to load person.")}</p>`);
+    renderState(`<p class="detail-state">${escapeHtml(error instanceof Error ? error.message : tl("Failed to load person."))}</p>`);
   }
 }
 
 void loadPerson();
+
+subscribeLocale(() => {
+  if (!personPayload?.message) return;
+  const slug = currentSlug();
+  renderState(buildPersonMarkup(personPayload.message, slug));
+  setupInteractions();
+});

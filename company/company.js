@@ -1,4 +1,13 @@
 import "@phosphor-icons/web/fill";
+import {
+  formatCurrency as localeCurrency,
+  formatDateValue,
+  formatNumber,
+  localizedText as resolveLocalizedText,
+  subscribeLocale,
+  t,
+  tl,
+} from "../shared/i18n.js";
 
 const EMAIL_ICON_URL = new URL("../assets/ios/email.svg", import.meta.url).href;
 const PHONE_ICON_URL = new URL("../assets/ios/phone.svg", import.meta.url).href;
@@ -7,6 +16,7 @@ const APPLE_MAPS_TOKEN = import.meta.env.VITE_APPLE_MAPS_TOKEN || "";
 const MAP_MARKER_COLOR = "#9422db";
 
 let appleMapKitPromise = null;
+let companyPayload = null;
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -69,12 +79,16 @@ function normalizeEmtakTree(nodes) {
   return safeArray(nodes).map((node) => ({
     code: normalizeEmtakCode(node?.Code || node?.code || node?.emtak_code || node?.emtakCode) || "",
     description:
-      textOrNull(node?.DescriptionEn) ||
-      textOrNull(node?.descriptionEn) ||
-      textOrNull(node?.DescriptionEt) ||
-      textOrNull(node?.descriptionEt) ||
-      textOrNull(node?.description_en) ||
-      textOrNull(node?.description_et) ||
+      resolveLocalizedText({
+        en:
+          textOrNull(node?.DescriptionEn) ||
+          textOrNull(node?.descriptionEn) ||
+          textOrNull(node?.description_en),
+        et:
+          textOrNull(node?.DescriptionEt) ||
+          textOrNull(node?.descriptionEt) ||
+          textOrNull(node?.description_et),
+      }) ||
       "",
     children: normalizeEmtakTree(node?.children || []),
   }));
@@ -163,49 +177,45 @@ function chartTicks(values) {
 
 function statusMeta(code) {
   const normalized = String(code || "").trim().toUpperCase();
-  if (normalized === "R") return { label: "Registered", tone: "positive" };
-  if (normalized === "L") return { label: "In liquidation", tone: "warning" };
-  if (normalized === "N") return { label: "Bankruptcy", tone: "danger" };
-  if (normalized === "K") return { label: "Deleted", tone: "danger" };
-  return { label: "Unknown", tone: "neutral" };
+  if (normalized === "R") return { label: tl("Registered"), tone: "positive" };
+  if (normalized === "L") return { label: tl("In liquidation"), tone: "warning" };
+  if (normalized === "N") return { label: tl("Bankruptcy"), tone: "danger" };
+  if (normalized === "K") return { label: tl("Deleted"), tone: "danger" };
+  return { label: tl("Unknown"), tone: "neutral" };
 }
 
 function formatInteger(value) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) return "No data";
-  return new Intl.NumberFormat("en-US", {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return tl("No data");
+  return formatNumber(Number(value), {
     maximumFractionDigits: 0,
-  }).format(Number(value));
+  });
 }
 
 function formatDecimal(value, maximumFractionDigits = 2) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) return "No data";
-  return new Intl.NumberFormat("en-US", {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return tl("No data");
+  return formatNumber(Number(value), {
     minimumFractionDigits: 0,
     maximumFractionDigits,
-  }).format(Number(value));
+  });
 }
 
 function formatCurrency(value) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) return "No data";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "EUR",
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return tl("No data");
+  return localeCurrency(Number(value), {
     maximumFractionDigits: Math.abs(Number(value)) >= 100 ? 0 : 2,
-  }).format(Number(value));
+  });
 }
 
 function formatCompactCurrency(value) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) return "No data";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "EUR",
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return tl("No data");
+  return localeCurrency(Number(value), {
     notation: "compact",
     maximumFractionDigits: 1,
-  }).format(Number(value));
+  }).replace(/\b(?:tuh)\b/gi, "K");
 }
 
 function formatPercent(value) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) return "No data";
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return tl("No data");
   return `${formatDecimal(value, 1)}%`;
 }
 
@@ -222,13 +232,13 @@ function initials(name) {
 function buildSummary(company) {
   const bits = [
     textOrNull(company.legal_form),
-    textOrNull(company.registration_date) ? `Registered ${company.registration_date}` : null,
+    textOrNull(company.registration_date) ? `${tl("Registered")} ${company.registration_date}` : null,
     textOrNull(company.newest_address?.county),
   ].filter(Boolean);
   if (!bits.length) {
-    return "Company intelligence profile built from registry, tax, ownership, and contact data.";
+    return t("company.summary.default");
   }
-  return `${bits.join(" • ")}. Company intelligence profile built from live ContactPit data.`;
+  return `${bits.join(" • ")}. ${t("company.summary.liveSuffix")}`;
 }
 
 function normalizeCoordinates(coordinates) {
@@ -306,7 +316,7 @@ function renderCompanyLocationMap(container) {
   const longitude = numberOrNull(container.getAttribute("data-company-map-lng"));
   if (latitude === null || longitude === null) return;
 
-  const title = textOrNull(container.getAttribute("data-company-map-title")) || "Company location";
+  const title = textOrNull(container.getAttribute("data-company-map-title")) || tl("Company location");
   const subtitle = textOrNull(container.getAttribute("data-company-map-subtitle")) || "";
   const { mapkit } = window;
   const map = new mapkit.Map(container);
@@ -476,7 +486,7 @@ function miniBars(title, points, formatter, scope) {
             <h3>${escapeHtml(title)}</h3>
           </div>
         </div>
-        <p class="company-empty-copy">No ${scope.toLowerCase()} history available yet.</p>
+        <p class="company-empty-copy">${escapeHtml(tl("No history available yet."))}</p>
       </article>
     `;
   }
@@ -674,29 +684,44 @@ function lineChartMarkup(chartId, mode, points, formatter) {
   `;
 }
 
-function historyChartMarkup(metricId, title, history, formatter) {
+function rankBadgeMarkup(label, value) {
+  const normalizedValue = numberOrNull(value);
+  if (normalizedValue === null) return "";
+  return `
+    <div class="company-floating-rail company-chart-rank-rail">
+      <div class="company-chart-rank-badge">
+        <span>${escapeHtml(label)}</span>
+        <strong>#${escapeHtml(formatInteger(normalizedValue))}</strong>
+      </div>
+    </div>
+  `;
+}
+
+function historyChartMarkup(metricId, title, history, formatter, options = {}) {
   const annualPoints = metricHistorySeries(history, "annual");
   const quarterlyPoints = metricHistorySeries(history, "quarterly");
   const defaultMode = quarterlyPoints.length ? "quarterly" : "annual";
   const annualLatest = annualPoints[annualPoints.length - 1];
   const quarterlyLatest = quarterlyPoints[quarterlyPoints.length - 1];
+  const rankBadge = rankBadgeMarkup(options.rankLabel || tl("National rank"), options.rankValue);
 
   return `
     <article class="company-chart-card company-overview-chart-card" data-chart-shell="${escapeHtml(metricId)}" data-chart-mode="${escapeHtml(defaultMode)}">
+      ${rankBadge}
       <div class="company-overview-chart-toolbar">
         <div class="company-overview-chart-summaries">
           <div class="company-line-chart-summary${defaultMode === "annual" ? " is-active" : ""}" data-chart-summary-panel="${escapeHtml(metricId)}" data-chart-summary-mode="annual" data-line-summary="${escapeHtml(`${metricId}-annual`)}">
-            <strong data-line-summary-value>${escapeHtml(annualLatest ? formatter(annualLatest.value) : "No data")}</strong>
+            <strong data-line-summary-value>${escapeHtml(annualLatest ? formatter(annualLatest.value) : tl("No data"))}</strong>
             <span data-line-summary-period>${escapeHtml(annualLatest?.period || "")}</span>
           </div>
           <div class="company-line-chart-summary${defaultMode === "quarterly" ? " is-active" : ""}" data-chart-summary-panel="${escapeHtml(metricId)}" data-chart-summary-mode="quarterly" data-line-summary="${escapeHtml(`${metricId}-quarterly`)}">
-            <strong data-line-summary-value>${escapeHtml(quarterlyLatest ? formatter(quarterlyLatest.value) : "No data")}</strong>
+            <strong data-line-summary-value>${escapeHtml(quarterlyLatest ? formatter(quarterlyLatest.value) : tl("No data"))}</strong>
             <span data-line-summary-period>${escapeHtml(quarterlyLatest?.period || "")}</span>
           </div>
         </div>
         <div class="company-toggle" role="tablist" aria-label="${escapeHtml(title)} history scope">
-          <button class="company-toggle-button${defaultMode === "annual" ? " is-active" : ""}" type="button" data-chart-toggle="${escapeHtml(metricId)}" data-chart-mode="annual">Annual</button>
-          <button class="company-toggle-button${defaultMode === "quarterly" ? " is-active" : ""}" type="button" data-chart-toggle="${escapeHtml(metricId)}" data-chart-mode="quarterly">Quarterly</button>
+          <button class="company-toggle-button${defaultMode === "annual" ? " is-active" : ""}" type="button" data-chart-toggle="${escapeHtml(metricId)}" data-chart-mode="annual">${escapeHtml(tl("Annual"))}</button>
+          <button class="company-toggle-button${defaultMode === "quarterly" ? " is-active" : ""}" type="button" data-chart-toggle="${escapeHtml(metricId)}" data-chart-mode="quarterly">${escapeHtml(tl("Quarterly"))}</button>
         </div>
       </div>
       <div class="company-chart-mode-panel${defaultMode === "annual" ? " is-active" : ""}" data-chart-panel="${escapeHtml(metricId)}" data-chart-panel-mode="annual">
@@ -716,7 +741,7 @@ function metricHistorySeries(history, mode) {
 
 function personName(entry) {
   const fullName = [textOrNull(entry?.first_name), textOrNull(entry?.last_name)].filter(Boolean).join(" ");
-  return fullName || textOrNull(entry?.full_name) || textOrNull(entry?.name) || "Unknown";
+  return fullName || textOrNull(entry?.full_name) || textOrNull(entry?.name) || tl("Unknown");
 }
 
 function companySlug(name, registryCode) {
@@ -738,7 +763,7 @@ function personDateRange(entry) {
   const start = textOrNull(entry?.start_date);
   const end = textOrNull(entry?.end_date);
   if (start && end) return `${start} - ${end}`;
-  if (start) return `Since ${start}`;
+  if (start) return `${tl("Since")} ${start}`;
   if (end) return `Until ${end}`;
   return null;
 }
@@ -845,7 +870,7 @@ function peopleListMarkup(items, emptyLabel) {
           return companyEntityCardMarkup({
             entry,
             name: personName(entry),
-            meta: meta || "No additional detail",
+            meta: meta || tl("No additional detail"),
             href,
           });
         })
@@ -913,27 +938,15 @@ function localizedLegendTitle(entry) {
   if (!entry) return null;
   if (typeof entry === "string") return textOrNull(entry);
   if (typeof entry !== "object") return null;
-
-  const pickFirst = (...values) => {
-    for (const value of values) {
-      const items = Array.isArray(value) ? value : [value];
-      for (const item of items) {
-        const text = textOrNull(item);
-        if (text) return text;
-      }
-    }
-    return null;
-  };
-
-  return pickFirst(
-    entry.english,
-    entry.en,
-    entry.estonian,
-    entry.et,
-    entry.raw,
-    entry.label,
-    entry.title,
-    entry.name
+  return (
+    resolveLocalizedText({
+      en: textOrNull(entry.english) || textOrNull(entry.en),
+      et: textOrNull(entry.estonian) || textOrNull(entry.et),
+    }) ||
+    textOrNull(entry.raw) ||
+    textOrNull(entry.label) ||
+    textOrNull(entry.title) ||
+    textOrNull(entry.name)
   );
 }
 
@@ -1088,7 +1101,7 @@ function latestYearEntry(items) {
 }
 
 function formatRatio(value) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) return "No data";
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return tl("No data");
   return `${formatDecimal(value, 2)}x`;
 }
 
@@ -1278,7 +1291,7 @@ function incomeStatementMarkup(statement, legends) {
         [
           ...revenueRows,
           statementRowMarkup({
-            label: "Revenue",
+            label: tl("Revenue"),
             value: formatCompactCurrency(statement.i_total_revenue ?? ((numberOrNull(statement.i_10) || 0) + (numberOrNull(statement.i_40) || 0))),
             kind: "parent",
           }),
@@ -1289,7 +1302,7 @@ function incomeStatementMarkup(statement, legends) {
         [
           ...operatingCostRows,
           statementRowMarkup({
-            label: "Operating cost",
+            label: tl("Operating cost"),
             value: formatCompactCurrency(statement.i_total_operating_cost),
             kind: "parent",
           }),
@@ -1299,7 +1312,7 @@ function incomeStatementMarkup(statement, legends) {
       ${statementSectionMarkup(
         [
           statementRowMarkup({
-            label: "Operating profit",
+            label: tl("Operating profit"),
             value: formatCompactCurrency(statement.i_170),
             kind: "parent",
           }),
@@ -1310,7 +1323,7 @@ function incomeStatementMarkup(statement, legends) {
         [
           ...netInterestRows,
           statementRowMarkup({
-            label: "Net interest",
+            label: tl("Net interest"),
             value: formatCompactCurrency((numberOrNull(statement.i_197) || 0) + (numberOrNull(statement.i_205) || 0)),
             kind: "parent",
           }),
@@ -1320,7 +1333,7 @@ function incomeStatementMarkup(statement, legends) {
       ${statementSectionMarkup(
         [
           statementRowMarkup({
-            label: "Profit before tax",
+            label: tl("Profit before tax"),
             value: formatCompactCurrency(statement.i_230),
             kind: "parent",
           }),
@@ -1330,7 +1343,7 @@ function incomeStatementMarkup(statement, legends) {
       ${statementSectionMarkup(
         [
           statementRowMarkup({
-            label: "Net profit",
+            label: tl("Net profit"),
             value: formatCompactCurrency(statement.i_250),
             kind: "parent",
           }),
@@ -1472,8 +1485,9 @@ function balanceSheetMarkup(balanceSheet, legends) {
   `;
 }
 
-function financialSectionMarkup({ eyebrow = "Financial", title, description, content }) {
-  const hasFloatingRail = String(content || "").includes("company-paged-list-controls");
+function financialSectionMarkup({ eyebrow = tl("Financial"), title, description, content }) {
+  const hasFloatingRail =
+    String(content || "").includes("company-paged-list-controls") || String(content || "").includes("company-chart-rank-rail");
   return `
     <section class="company-subsection-grid">
       <div class="company-subsection-copy">
@@ -1547,58 +1561,58 @@ function buildFinancialYearSectionsMarkup(message, legends, year) {
 
   return [
     financialSectionMarkup({
-      title: "Income statement",
-      description: `Revenue and profit signals for ${year}.`,
+      title: tl("Income statement"),
+      description: t("company.financial.incomeStatementDescription", { year }),
       content: incomeStatement
         ? incomeStatementMarkup(incomeStatement, legends)
         : statementOfRevenuesAndExpensesMarkup(statementOfRevenuesAndExpenses, legends),
     }),
     financialSectionMarkup({
-      title: "Profitability",
-      description: `Margin-based reading of the ${year} results.`,
+      title: tl("Profitability"),
+      description: t("company.financial.profitabilityDescription", { year }),
       content: dataRowsMarkup(
         [
           {
-            label: "Operating margin",
-            value: snapshot?.revenue && snapshot?.operatingProfit !== null ? formatPercent((snapshot.operatingProfit / snapshot.revenue) * 100) : "No data",
+            label: tl("Operating margin"),
+            value: snapshot?.revenue && snapshot?.operatingProfit !== null ? formatPercent((snapshot.operatingProfit / snapshot.revenue) * 100) : tl("No data"),
           },
           {
-            label: "Net margin",
-            value: snapshot?.revenue && snapshot?.netProfit !== null ? formatPercent((snapshot.netProfit / snapshot.revenue) * 100) : "No data",
+            label: tl("Net margin"),
+            value: snapshot?.revenue && snapshot?.netProfit !== null ? formatPercent((snapshot.netProfit / snapshot.revenue) * 100) : tl("No data"),
           },
           {
-            label: "Pre-tax margin",
-            value: snapshot?.revenue && snapshot?.profitBeforeTax !== null ? formatPercent((snapshot.profitBeforeTax / snapshot.revenue) * 100) : "No data",
+            label: tl("Pre-tax margin"),
+            value: snapshot?.revenue && snapshot?.profitBeforeTax !== null ? formatPercent((snapshot.profitBeforeTax / snapshot.revenue) * 100) : tl("No data"),
           },
         ],
-        "Not enough data to calculate profitability for this year."
+        tl("Not enough data to calculate profitability for this year.")
       ),
     }),
     financialSectionMarkup({
-      title: "Balance sheet",
-      description: `Asset and liability position reported for ${year}.`,
+      title: tl("Balance sheet"),
+      description: t("company.financial.balanceSheetDescription", { year }),
       content: balanceSheetMarkup(balanceSheet, legends),
     }),
     financialSectionMarkup({
-      title: "Financial health",
-      description: `Liquidity and leverage metrics derived from the ${year} balance sheet.`,
+      title: tl("Financial health"),
+      description: t("company.financial.healthDescription", { year }),
       content: dataRowsMarkup(
         [
-          { label: "Current ratio", value: formatRatio(currentRatio) },
-          { label: "Debt to assets", value: formatPercent(debtToAssets) },
-          { label: "Working capital", value: formatCompactCurrency(workingCapital) },
+          { label: tl("Current ratio"), value: formatRatio(currentRatio) },
+          { label: tl("Debt to assets"), value: formatPercent(debtToAssets) },
+          { label: tl("Working capital"), value: formatCompactCurrency(workingCapital) },
         ],
-        "No financial health metrics are available for this year."
+        tl("No financial health metrics are available for this year.")
       ),
     }),
     financialSectionMarkup({
-      title: "Cash flow",
-      description: `Reported cash movement rows for ${year}.`,
+      title: tl("Cash flow"),
+      description: t("company.financial.cashFlowDescription", { year }),
       content: cashFlowMarkup(cashFlow, legends),
     }),
     financialSectionMarkup({
-      title: "Revenue by activity",
-      description: `Revenue split across reported activity codes in ${year}.`,
+      title: tl("Revenue by activity"),
+      description: t("company.financial.revenueByActivityDescription", { year }),
       content: (() => {
         const activityRows = safeArray(revenueByEmtak?.data)
           .slice()
@@ -1612,7 +1626,7 @@ function buildFinancialYearSectionsMarkup(message, legends, year) {
             const fallbackId = `${resolvedDescription || "activity"}-${numberOrNull(entry?.revenue_amount) || 0}`;
             return {
               id: emtakCode || fallbackId,
-              name: resolvedDescription || emtakCode || "Activity",
+              name: resolvedDescription || emtakCode || tl("Activity"),
               meta: resolvedDescription && emtakCode ? emtakCode : null,
               value: numberOrNull(entry?.revenue_amount) || 0,
             };
@@ -1623,7 +1637,7 @@ function buildFinancialYearSectionsMarkup(message, legends, year) {
           activityRows,
           totalActivityRevenue,
           formatCompactCurrency(totalActivityRevenue),
-          "No revenue-by-activity data is available for this year.",
+          tl("No revenue-by-activity data is available for this year."),
           `company-activity-revenue-${year}`
         );
       })(),
@@ -1634,22 +1648,22 @@ function buildFinancialYearSectionsMarkup(message, legends, year) {
 function buildFinancialEmtaSectionsMarkup(stats) {
   return [
     financialSectionMarkup({
-      eyebrow: "EMTA",
-      title: "Turnover",
-      description: "Quarter-based EMTA turnover history.",
-      content: historyChartMarkup("emta-turnover", "Turnover", stats?.turnover_history, formatCompactCurrency),
+      eyebrow: tl("EMTA"),
+      title: tl("Turnover"),
+      description: tl("Quarter-based EMTA turnover history."),
+      content: historyChartMarkup("emta-turnover", tl("Turnover"), stats?.turnover_history, formatCompactCurrency),
     }),
     financialSectionMarkup({
-      eyebrow: "EMTA",
-      title: "Labour taxes",
-      description: "Quarter-based labour tax history from EMTA statistics.",
-      content: historyChartMarkup("emta-labour-taxes", "Labour taxes", stats?.labour_taxes_history, formatCompactCurrency),
+      eyebrow: tl("EMTA"),
+      title: tl("Labour taxes"),
+      description: tl("Quarter-based labour tax history from EMTA statistics."),
+      content: historyChartMarkup("emta-labour-taxes", tl("Labour taxes"), stats?.labour_taxes_history, formatCompactCurrency),
     }),
     financialSectionMarkup({
-      eyebrow: "EMTA",
-      title: "National taxes",
-      description: "Quarter-based national tax history from EMTA statistics.",
-      content: historyChartMarkup("emta-national-taxes", "National taxes", stats?.national_taxes_history, formatCompactCurrency),
+      eyebrow: tl("EMTA"),
+      title: tl("National taxes"),
+      description: tl("Quarter-based national tax history from EMTA statistics."),
+      content: historyChartMarkup("emta-national-taxes", tl("National taxes"), stats?.national_taxes_history, formatCompactCurrency),
     }),
   ].join("");
 }
@@ -1680,6 +1694,7 @@ function dataRowsMarkup(rows, emptyLabel) {
 }
 
 const COMPANY_ACTIVITY_SLICE_COLORS = [
+  "linear-gradient(135deg, #b829cd, #b829cd)",
   "linear-gradient(135deg, #3558d8, #2548c8)",
   "linear-gradient(135deg, #0f88da, #007bd1)",
   "linear-gradient(135deg, #15a9b8, #079ea9)",
@@ -1692,7 +1707,7 @@ const COMPANY_ACTIVITY_SLICE_COLORS = [
   "linear-gradient(135deg, #8e59c9, #7d49bb)",
 ];
 
-const COMPANY_ACTIVITY_SLICE_SOLID_COLORS = ["#2f52d5", "#0b84d8", "#0fa7b7", "#35b569", "#75c33b", "#efbf29", "#ee972c", "#e95b3c", "#d6456c", "#8955c6"];
+const COMPANY_ACTIVITY_SLICE_SOLID_COLORS = ["#b829cd", "#2f52d5", "#0b84d8", "#0fa7b7", "#35b569", "#75c33b", "#efbf29", "#ee972c", "#e95b3c", "#d6456c", "#8955c6"];
 
 function splitPieSlices(rawSlices, threshold = 0.015, softCap = 12) {
   const maxValue = rawSlices[0]?.value || 0;
@@ -1926,6 +1941,19 @@ function companyActivityPieChartMarkup(rows, total, label, emptyLabel, pagerId) 
     return `<p class="company-empty-copy">${escapeHtml(emptyLabel)}</p>`;
   }
 
+  if (legendSlices.length === 1) {
+    const slice = legendSlices[0];
+    return `
+      <div class="company-activity-inline-row">
+        <div class="company-activity-inline-copy">
+          <span class="company-activity-inline-title">${escapeHtml(slice.name)}</span>
+          ${textOrNull(slice.meta) ? `<p class="company-activity-inline-meta">${escapeHtml(slice.meta)}</p>` : ""}
+        </div>
+        <strong class="company-activity-inline-value">${escapeHtml(formatCompactCurrency(slice.value))}</strong>
+      </div>
+    `;
+  }
+
   return `
     <div class="person-financial-pie-chart company-activity-pie-chart">
       ${companyActivityPieLegendMarkup(legendSlices, pagerId)}
@@ -1953,14 +1981,21 @@ function pagedDataRowsMarkup(items, mapRow, emptyLabel, pagerId) {
   for (let index = 0; index < list.length; index += 5) {
     pages.push(list.slice(index, index + 5));
   }
+  const isPaged = pages.length > 1;
 
   return `
-    <div class="company-paged-list" data-paged-list="${escapeHtml(pagerId)}" data-page-index="0">
-      <div class="company-floating-rail company-paged-list-controls">
-        <button class="company-page-button" type="button" data-page-prev="${escapeHtml(pagerId)}" aria-label="Previous page"><span aria-hidden="true">${chevronIcon("left")}</span></button>
-        <span class="company-paged-list-status" data-page-status>${escapeHtml(`1 / ${pages.length}`)}</span>
-        <button class="company-page-button" type="button" data-page-next="${escapeHtml(pagerId)}" aria-label="Next page"><span aria-hidden="true">${chevronIcon("right")}</span></button>
-      </div>
+    <div class="company-paged-list${isPaged ? " is-paged" : ""}" data-paged-list="${escapeHtml(pagerId)}" data-page-index="0">
+      ${
+        isPaged
+          ? `
+            <div class="company-floating-rail company-paged-list-controls">
+              <button class="company-page-button" type="button" data-page-prev="${escapeHtml(pagerId)}" aria-label="Previous page"><span aria-hidden="true">${chevronIcon("left")}</span></button>
+              <span class="company-paged-list-status" data-page-status>${escapeHtml(`1 / ${pages.length}`)}</span>
+              <button class="company-page-button" type="button" data-page-next="${escapeHtml(pagerId)}" aria-label="Next page"><span aria-hidden="true">${chevronIcon("right")}</span></button>
+            </div>
+          `
+          : ""
+      }
       ${pages
         .map(
           (page, pageIndex) => `
@@ -1984,14 +2019,21 @@ function pagedMarkup(items, renderPage, emptyLabel, pagerId) {
   for (let index = 0; index < list.length; index += 5) {
     pages.push(list.slice(index, index + 5));
   }
+  const isPaged = pages.length > 1;
 
   return `
-    <div class="company-paged-list" data-paged-list="${escapeHtml(pagerId)}" data-page-index="0">
-      <div class="company-floating-rail company-paged-list-controls">
-        <button class="company-page-button" type="button" data-page-prev="${escapeHtml(pagerId)}" aria-label="Previous page"><span aria-hidden="true">${chevronIcon("left")}</span></button>
-        <span class="company-paged-list-status" data-page-status>${escapeHtml(`1 / ${pages.length}`)}</span>
-        <button class="company-page-button" type="button" data-page-next="${escapeHtml(pagerId)}" aria-label="Next page"><span aria-hidden="true">${chevronIcon("right")}</span></button>
-      </div>
+    <div class="company-paged-list${isPaged ? " is-paged" : ""}" data-paged-list="${escapeHtml(pagerId)}" data-page-index="0">
+      ${
+        isPaged
+          ? `
+            <div class="company-floating-rail company-paged-list-controls">
+              <button class="company-page-button" type="button" data-page-prev="${escapeHtml(pagerId)}" aria-label="Previous page"><span aria-hidden="true">${chevronIcon("left")}</span></button>
+              <span class="company-paged-list-status" data-page-status>${escapeHtml(`1 / ${pages.length}`)}</span>
+              <button class="company-page-button" type="button" data-page-next="${escapeHtml(pagerId)}" aria-label="Next page"><span aria-hidden="true">${chevronIcon("right")}</span></button>
+            </div>
+          `
+          : ""
+      }
       ${pages
         .map(
           (page, pageIndex) => `
@@ -2033,32 +2075,26 @@ function industryStandingMarkup(industryStats, fallbackRanks) {
             .join("")}
         </div>
       `,
-      "No industry standings are available yet.",
+      tl("No industry standings are available yet."),
       "industry-leaders"
     );
   }
 
   return dataRowsMarkup(
     [
-      currentRank ? { label: "Industry rank", value: `#${formatInteger(currentRank)}` } : null,
+      currentRank ? { label: tl("Industry rank"), value: `#${formatInteger(currentRank)}` } : null,
       numberOrNull(fallbackRanks?.turnover_national_rank)
-        ? { label: "Turnover rank", value: `#${formatInteger(fallbackRanks.turnover_national_rank)}` }
-        : null,
-      numberOrNull(fallbackRanks?.employees_national_rank)
-        ? { label: "Employees rank", value: `#${formatInteger(fallbackRanks.employees_national_rank)}` }
-        : null,
-      numberOrNull(fallbackRanks?.average_salary_national_rank)
-        ? { label: "Salary rank", value: `#${formatInteger(fallbackRanks.average_salary_national_rank)}` }
+        ? { label: tl("Turnover rank"), value: `#${formatInteger(fallbackRanks.turnover_national_rank)}` }
         : null,
     ].filter(Boolean),
-    "No industry standings are available yet."
+    tl("No industry standings are available yet.")
   );
 }
 
 function legalSuccessionMarkup(items) {
   const list = safeArray(items);
   if (!list.length) {
-    return '<p class="company-empty-copy">No legal succession records are available for this company.</p>';
+    return `<p class="company-empty-copy">${escapeHtml(tl("No legal succession records are available for this company."))}</p>`;
   }
 
   const dateTitle = (entry) => {
@@ -2094,7 +2130,7 @@ function legalSuccessionMarkup(items) {
     .filter((row) => row.title || row.content);
 
   if (!rows.length) {
-    return '<p class="company-empty-copy">No legal succession records are available for this company.</p>';
+    return `<p class="company-empty-copy">${escapeHtml(tl("No legal succession records are available for this company."))}</p>`;
   }
 
   return `
@@ -2152,7 +2188,7 @@ function activityCodesMarkup(company, legends) {
           (item) => `
             <article class="company-tag-card">
               <p class="company-tag-title">${escapeHtml(item.description || `EMTAK ${item.code || ""}`.trim())}</p>
-              ${item.code ? `<p class="company-tag-meta">${escapeHtml(item.code)}${item.isPrimary ? " • Primary" : ""}</p>` : ""}
+              ${item.code ? `<p class="company-tag-meta">${escapeHtml(item.code)}${item.isPrimary ? ` • ${escapeHtml(tl("Primary"))}` : ""}</p>` : ""}
             </article>
           `
         )
@@ -2216,15 +2252,15 @@ function locationMarkup(company) {
   const mapsHref = appleMapsHrefForLocation({
     coordinates,
     address: fullAddress,
-    label: textOrNull(company?.name) || "Company location",
+    label: textOrNull(company?.name) || tl("Company location"),
   });
   const fields = [
-    ["Address", textOrNull(newestAddress.address)],
-    ["County", textOrNull(newestAddress.county)],
-    ["City / municipality", textOrNull(newestAddress["city/municipality"]) || textOrNull(newestAddress.city) || textOrNull(newestAddress.municipality)],
-    ["Neighbourhood", textOrNull(newestAddress.neighborhood)],
-    ["Postal code", textOrNull(newestAddress.postal_code)],
-    ["Country", textOrNull(newestAddress.country)],
+    [tl("Address"), textOrNull(newestAddress.address)],
+    [tl("County"), textOrNull(newestAddress.county)],
+    [tl("City / municipality"), textOrNull(newestAddress["city/municipality"]) || textOrNull(newestAddress.city) || textOrNull(newestAddress.municipality)],
+    [tl("Neighbourhood"), textOrNull(newestAddress.neighborhood)],
+    [tl("Postal code"), textOrNull(newestAddress.postal_code)],
+    [tl("Country"), textOrNull(newestAddress.country)],
   ].filter(([, value]) => value);
 
   return `
@@ -2238,7 +2274,7 @@ function locationMarkup(company) {
                 data-company-apple-map
                 data-company-map-lat="${escapeHtml(String(coordinates.latitude))}"
                 data-company-map-lng="${escapeHtml(String(coordinates.longitude))}"
-                data-company-map-title="${escapeHtml(textOrNull(company?.name) || "Company location")}"
+                data-company-map-title="${escapeHtml(textOrNull(company?.name) || tl("Company location"))}"
                 data-company-map-subtitle="${escapeHtml(fullAddress || "")}"
               ></div>
             `
@@ -2264,9 +2300,9 @@ function locationMarkup(company) {
                 </div>
               `
               : ""}
-            ${mapsHref ? `<a class="company-location-link" href="${escapeHtml(mapsHref)}" target="_blank" rel="noreferrer">Open in Maps</a>` : ""}
+            ${mapsHref ? `<a class="company-location-link" href="${escapeHtml(mapsHref)}" target="_blank" rel="noreferrer">${escapeHtml(tl("Open in Maps"))}</a>` : ""}
           `
-          : '<p class="company-empty-copy">No location details are available for this company.</p>'
+          : `<p class="company-empty-copy">${escapeHtml(tl("No location details are available for this company."))}</p>`
       }
     </div>
   `;
@@ -2278,8 +2314,8 @@ function economicActivitiesMarkup(items) {
     (entry, index) => ({
       label:
         pickRecordValue(entry, ["category_en", "categoryEn", "category", "name"]) ||
-        `Economic activity ${index + 1}`,
-      value: entry?.is_active === false || entry?.isValid === false ? "Inactive" : "Active",
+        `${tl("Economic activity")} ${index + 1}`,
+      value: entry?.is_active === false || entry?.isValid === false ? tl("Inactive") : tl("Active"),
       meta: [
         pickRecordValue(entry, ["number"]),
         pickRecordValue(entry, ["valid_from", "validFrom"]),
@@ -2298,8 +2334,8 @@ function operatingLicencesMarkup(items) {
     (entry, index) => ({
       label:
         pickRecordValue(entry, ["category_en", "categoryEn", "category", "name"]) ||
-        `Operating licence ${index + 1}`,
-      value: entry?.is_valid === false || entry?.isValid === false ? "Inactive" : "Active",
+        `${tl("Operating licence")} ${index + 1}`,
+      value: entry?.is_valid === false || entry?.isValid === false ? tl("Inactive") : tl("Active"),
       meta: [
         pickRecordValue(entry, ["number"]),
         pickRecordValue(entry, ["valid_from", "validFrom"]),
@@ -2314,7 +2350,7 @@ function operatingLicencesMarkup(items) {
 
 function overviewSectionMarkup({ title, description, content }) {
   return financialSectionMarkup({
-    eyebrow: "Overview",
+    eyebrow: tl("Overview"),
     title,
     description,
     content,
@@ -2324,48 +2360,52 @@ function overviewSectionMarkup({ title, description, content }) {
 function buildOverviewSectionsMarkup({ message, company, stats, legends, legalSuccessions }) {
   return [
     overviewSectionMarkup({
-      title: "Activity codes",
-      description: "Registered EMTAK codes and primary industry focus.",
+      title: tl("Activity codes"),
+      description: tl("Registered EMTAK codes and primary industry focus."),
       content: activityCodesMarkup(company, legends),
     }),
     overviewSectionMarkup({
-      title: "Employees",
-      description: "Reported employee history and latest workforce scale.",
-      content: historyChartMarkup("employees", "Employees", stats?.employees_count_history, formatInteger),
+      title: tl("Employees"),
+      description: tl("Reported employee history and latest workforce scale."),
+      content: historyChartMarkup("employees", tl("Employees"), stats?.employees_count_history, formatInteger, {
+        rankValue: stats?.employees_national_rank,
+      }),
     }),
     overviewSectionMarkup({
-      title: "Average salary",
-      description: "Reported salary history and latest pay level.",
-      content: historyChartMarkup("average-salary", "Average salary", stats?.average_salary_history, formatCurrency),
+      title: tl("Average salary"),
+      description: tl("Reported salary history and latest pay level."),
+      content: historyChartMarkup("average-salary", tl("Average salary"), stats?.average_salary_history, formatCurrency, {
+        rankValue: stats?.average_salary_national_rank,
+      }),
     }),
     overviewSectionMarkup({
-      title: "Shareholders",
-      description: "Ownership records currently associated with the company.",
+      title: tl("Shareholders"),
+      description: tl("Ownership records currently associated with the company."),
       content: shareholderListMarkup(message.shareholders),
     }),
     overviewSectionMarkup({
-      title: "Shares in companies",
-      description: "Equity positions this company holds in other entities.",
-      content: shareholdingsMarkup(message.shares_in_companies, "No shareholdings in other companies are available."),
+      title: tl("Shares in companies"),
+      description: tl("Equity positions this company holds in other entities."),
+      content: shareholdingsMarkup(message.shares_in_companies, tl("No shareholdings in other companies are available.")),
     }),
     overviewSectionMarkup({
-      title: "Economic activities",
-      description: "Declared activity records and their current validity.",
+      title: tl("Economic activities"),
+      description: tl("Declared activity records and their current validity."),
       content: economicActivitiesMarkup(message.economic_activities),
     }),
     overviewSectionMarkup({
-      title: "Operating licences",
-      description: "Licences and permits associated with the company.",
+      title: tl("Operating licences"),
+      description: tl("Licences and permits associated with the company."),
       content: operatingLicencesMarkup(message.operating_licences),
     }),
     overviewSectionMarkup({
-      title: "Industry leaders",
-      description: "Comparable market leaders and rank context.",
+      title: tl("Industry leaders"),
+      description: tl("Comparable market leaders and rank context."),
       content: industryStandingMarkup(message.industry_stats, stats),
     }),
     overviewSectionMarkup({
-      title: "Legal succession",
-      description: "Registered predecessor and successor relationships.",
+      title: tl("Legal succession"),
+      description: tl("Registered predecessor and successor relationships."),
       content: legalSuccessionMarkup(legalSuccessions),
     }),
   ].join("");
@@ -2373,9 +2413,9 @@ function buildOverviewSectionsMarkup({ message, company, stats, legends, legalSu
 
 function buildLocationSectionMarkup(company) {
   return financialSectionMarkup({
-    eyebrow: "Location",
-    title: "Registered address",
-    description: "Registered address map and structured location details.",
+    eyebrow: tl("Location"),
+    title: tl("Registered address"),
+    description: tl("Registered address map and structured location details."),
     content: locationMarkup(company),
   });
 }
@@ -2393,12 +2433,12 @@ function buildPage(payload, slug) {
   const email = firstContact(contacts, ["EMAIL"]);
   const phone = firstContact(contacts, ["MOB", "PHONE", "TEL"]);
   const website = firstContact(contacts, ["WWW", "WEB", "URL", "WEBSITE"]);
-  const registryCode = textOrNull(company.registry_code) || "Unknown";
+  const registryCode = textOrNull(company.registry_code) || tl("Unknown");
   const businessRegisterUrl =
-    registryCode !== "Unknown"
+    registryCode !== tl("Unknown")
       ? `https://ariregister.rik.ee/eng/company/${encodeURIComponent(registryCode)}/`
       : null;
-  const companyName = textOrNull(company.name) || "Unknown company";
+  const companyName = textOrNull(company.name) || t("entity.unknownCompany");
   const stats = message.statistics || {};
   const primaryEmtak =
     textOrNull(company.primary_emtak?.emtak_text) ||
@@ -2413,41 +2453,41 @@ function buildPage(payload, slug) {
       [textOrNull(entry?.first_name), textOrNull(entry?.last_name)].filter(Boolean).join(" ") ||
       textOrNull(entry?.name) ||
       textOrNull(entry?.company_name) ||
-      "Unknown",
+      tl("Unknown"),
     role_text:
       textOrNull(entry?.role_text) ||
       textOrNull(entry?.card_type) ||
       textOrNull(entry?.entity_type) ||
-      "Other relationship",
+      tl("Other relationship"),
   }));
   const peopleGroups = [
     {
       id: "representatives",
-      label: "Representatives",
+      label: tl("Representatives"),
       items: safeArray(message.representatives),
-      emptyLabel: "No representative records are available.",
-      description: "Who can represent the company in official matters.",
+      emptyLabel: tl("No representative records are available."),
+      description: tl("Who can represent the company in official matters."),
     },
     {
       id: "beneficiaries",
-      label: "Beneficiaries",
+      label: tl("Beneficiaries"),
       items: safeArray(message.beneficiaries),
-      emptyLabel: "No beneficiary records are available.",
-      description: "Beneficial owners and controlling interest holders.",
+      emptyLabel: tl("No beneficiary records are available."),
+      description: tl("Beneficial owners and controlling interest holders."),
     },
     {
       id: "council",
-      label: "Council",
+      label: tl("Council"),
       items: safeArray(message.board_members),
-      emptyLabel: "No board member records are available.",
-      description: "Council or board-level oversight roles linked to the company.",
+      emptyLabel: tl("No board member records are available."),
+      description: tl("Council or board-level oversight roles linked to the company."),
     },
     {
       id: "other",
-      label: "Other",
+      label: tl("Other"),
       items: otherPeopleItems,
-      emptyLabel: "No other personnel records are available.",
-      description: "Additional registry and non-registry relationships.",
+      emptyLabel: tl("No other personnel records are available."),
+      description: tl("Additional registry and non-registry relationships."),
     },
   ];
 
@@ -2457,9 +2497,9 @@ function buildPage(payload, slug) {
   const availableFinancialYears = financialPeriods(message);
   const activeFinancialPeriod = availableFinancialYears.length ? String(availableFinancialYears[0]) : message.statistics ? "emta" : "";
   const legalSuccessions = safeArray(company.legal_succession || company.legal_successions);
-  const vatRegistered = message.tax_information ? (message.tax_information.vat_registered ? "Active" : "Inactive") : null;
+  const vatRegistered = message.tax_information ? (message.tax_information.vat_registered ? tl("Active") : tl("Inactive")) : null;
 
-  document.title = `ContactPit | ${companyName}`;
+  document.title = t("meta.company.entityTitle", { name: companyName });
 
   return `
     <div class="company-view" data-company-view data-history-mode="${historyMode}" data-company-tab="${activeTab}" data-financial-period="${escapeHtml(activeFinancialPeriod)}">
@@ -2468,34 +2508,34 @@ function buildPage(payload, slug) {
           <div class="company-floating-rail">
             <div class="company-floating-status company-floating-status-${escapeHtml(status.tone)}">${escapeHtml(status.label)}</div>
             ${floatingAction({
-              label: "Email",
+              label: tl("Email"),
               href: email ? `mailto:${email.value}` : null,
               icon: "email",
             })}
             ${floatingAction({
-              label: "Phone",
+              label: tl("Phone"),
               href: phone ? `tel:${String(phone.value).replace(/\s+/g, "")}` : null,
               icon: "phone",
             })}
             ${floatingAction({
-              label: "Website",
+              label: tl("Website"),
               href: normalizeUrl(website?.value || website?.label),
               icon: "website",
               external: true,
             })}
             ${floatingAction({
-              label: "Ariregister",
+              label: tl("Ariregister"),
               href: businessRegisterUrl,
               icon: "register",
               external: true,
             })}
             ${floatingStat({
-              label: "Views",
+              label: tl("Views"),
               value: formatInteger(message.total_view_count ?? company.total_view_count ?? 0),
               icon: "eye",
             })}
             ${floatingStat({
-              label: "Favorites",
+              label: tl("Favorites"),
               value: formatInteger(message.total_favorite_count ?? company.total_favorite_count ?? 0),
               icon: "heart",
             })}
@@ -2509,12 +2549,12 @@ function buildPage(payload, slug) {
             </div>
             <div class="company-hero-meta-layout">
               <div class="company-info-grid company-info-grid-hero">
-                ${infoItem("Registry code", registryCode)}
-                ${infoItem("Legal form", company.legal_form)}
-                ${infoItem("Registered", company.registration_date)}
-                ${infoItem("Invoice provider", message.invoice_provider)}
-                ${infoItem("VAT number", message.tax_information?.vat_code)}
-                ${infoItem("VAT registered", message.tax_information ? (message.tax_information.vat_registered ? "Active" : "Inactive") : null)}
+                ${infoItem(tl("Registry code"), registryCode)}
+                ${infoItem(tl("Legal form"), company.legal_form)}
+                ${infoItem(tl("Registered"), company.registration_date)}
+                ${infoItem(tl("Invoice provider"), message.invoice_provider)}
+                ${infoItem(tl("VAT number"), message.tax_information?.vat_code)}
+                ${infoItem(tl("VAT registered"), vatRegistered)}
               </div>
             </div>
           </div>
@@ -2525,42 +2565,23 @@ function buildPage(payload, slug) {
         ${stats.tax_debt && Number(stats.tax_debt) > 0 ? `
           <article class="company-tax-alert">
             <div>
-              <p class="company-card-eyebrow">Tax debt</p>
-              <h2>${escapeHtml(formatCurrency(stats.tax_debt))} currently outstanding</h2>
-              <p>Presented separately so debt risk is immediately visible instead of being buried inside the KPI row.</p>
+              <p class="company-card-eyebrow">${escapeHtml(tl("Tax debt"))}</p>
+              <h2>${escapeHtml(formatCurrency(stats.tax_debt))} ${escapeHtml(tl("currently outstanding"))}</h2>
+              <p>${escapeHtml(tl("Presented separately so debt risk is immediately visible instead of being buried inside the KPI row."))}</p>
             </div>
             <div class="company-tax-alert-meta">
-              ${stats.national_taxes ? `<span class="company-inline-meta">National taxes ${escapeHtml(formatCompactCurrency(stats.national_taxes))}</span>` : ""}
-              ${stats.labour_taxes ? `<span class="company-inline-meta">Labour taxes ${escapeHtml(formatCompactCurrency(stats.labour_taxes))}</span>` : ""}
+              ${stats.national_taxes ? `<span class="company-inline-meta">${escapeHtml(tl("National taxes"))} ${escapeHtml(formatCompactCurrency(stats.national_taxes))}</span>` : ""}
+              ${stats.labour_taxes ? `<span class="company-inline-meta">${escapeHtml(tl("Labour taxes"))} ${escapeHtml(formatCompactCurrency(stats.labour_taxes))}</span>` : ""}
             </div>
           </article>
         ` : ""}
-
-        <div class="company-kpi-grid">
-          ${metricCard({
-            label: "4-quarter turnover",
-            value: formatCompactCurrency(stats.turnover_4_quarter_sum),
-            note: stats.turnover_last_quarter ? `Last quarter ${formatCompactCurrency(stats.turnover_last_quarter)}` : "Latest reported turnover",
-            accent: "is-featured",
-          })}
-          ${metricCard({
-            label: "Employees",
-            value: formatInteger(stats.employees_count),
-            note: stats.employees_national_rank ? `National rank #${formatInteger(stats.employees_national_rank)}` : "Latest reported headcount",
-          })}
-          ${metricCard({
-            label: "Average salary",
-            value: formatCurrency(stats.average_salary),
-            note: stats.average_salary_national_rank ? `National rank #${formatInteger(stats.average_salary_national_rank)}` : "Latest reported salary level",
-          })}
-        </div>
       </section>
 
-      <nav class="company-jump-nav" aria-label="Company section navigation" role="tablist">
-        <button class="is-active" type="button" data-company-tab-toggle="overview" role="tab" aria-selected="true">Overview</button>
-        <button type="button" data-company-tab-toggle="financial" role="tab" aria-selected="false">Financial</button>
-        <button type="button" data-company-tab-toggle="people" role="tab" aria-selected="false">People</button>
-        <button type="button" data-company-tab-toggle="location" role="tab" aria-selected="false">Location</button>
+      <nav class="company-jump-nav" aria-label="${escapeHtml(tl("Company section navigation"))}" role="tablist">
+        <button class="is-active" type="button" data-company-tab-toggle="overview" role="tab" aria-selected="true">${escapeHtml(tl("Overview"))}</button>
+        <button type="button" data-company-tab-toggle="financial" role="tab" aria-selected="false">${escapeHtml(tl("Financial"))}</button>
+        <button type="button" data-company-tab-toggle="people" role="tab" aria-selected="false">${escapeHtml(tl("People"))}</button>
+        <button type="button" data-company-tab-toggle="location" role="tab" aria-selected="false">${escapeHtml(tl("Location"))}</button>
       </nav>
 
       ${availableFinancialYears.length || message.statistics
@@ -2622,7 +2643,7 @@ function buildPage(payload, slug) {
                 (group) => `
                   <section class="company-subsection-grid">
                     <div class="company-subsection-copy">
-                      <p class="company-section-eyebrow">People</p>
+                      <p class="company-section-eyebrow">${escapeHtml(tl("People"))}</p>
                       <h3>${escapeHtml(group.label)}</h3>
                       <p>${escapeHtml(group.description)}</p>
                     </div>
@@ -2641,11 +2662,11 @@ function buildPage(payload, slug) {
 }
 
 function buildHistoryPanels(stats, mode) {
-  const scope = mode === "quarterly" ? "Quarterly" : "Annual";
+  const scope = mode === "quarterly" ? tl("Quarterly") : tl("Annual");
   return [
-    miniBars("Turnover", metricHistorySeries(stats.turnover_history, mode), formatCompactCurrency, scope),
-    miniBars("Employees", metricHistorySeries(stats.employees_count_history, mode), formatInteger, scope),
-    miniBars("Average salary", metricHistorySeries(stats.average_salary_history, mode), formatCurrency, scope),
+    miniBars(tl("Turnover"), metricHistorySeries(stats.turnover_history, mode), formatCompactCurrency, scope),
+    miniBars(tl("Employees"), metricHistorySeries(stats.employees_count_history, mode), formatInteger, scope),
+    miniBars(tl("Average salary"), metricHistorySeries(stats.average_salary_history, mode), formatCurrency, scope),
   ].join("");
 }
 
@@ -2739,7 +2760,7 @@ function setupInteractions(payload) {
         summary.classList.toggle("is-active", summary.getAttribute("data-chart-summary-mode") === mode);
       });
       const scopeLabel = chartShell.querySelector("[data-chart-scope-label]");
-      if (scopeLabel) scopeLabel.textContent = mode === "annual" ? "Annual" : "Quarterly";
+      if (scopeLabel) scopeLabel.textContent = mode === "annual" ? tl("Annual") : tl("Quarterly");
     });
   });
 
@@ -2875,7 +2896,7 @@ async function setupCompanyLocationMaps(scope = document) {
 async function loadCompany() {
   const slug = currentSlug();
   if (!slug) {
-    renderState('<p class="detail-state">Missing company slug.</p>');
+    renderState(`<p class="detail-state">${escapeHtml(tl("Missing company slug."))}</p>`);
     return;
   }
 
@@ -2887,16 +2908,24 @@ async function loadCompany() {
     });
 
     if (!response.ok) {
-      throw new Error(response.status === 404 ? "Company not found." : `Failed to load company (${response.status}).`);
+      throw new Error(response.status === 404 ? tl("Company not found.") : `${tl("Failed to load company.")} (${response.status}).`);
     }
 
     const rawPayload = await response.json();
     const payload = await ensureCompanyLegends(rawPayload);
+    companyPayload = payload;
     renderState(buildPage(payload, slug));
     setupInteractions(payload);
   } catch (error) {
-    renderState(`<p class="detail-state">${escapeHtml(error instanceof Error ? error.message : "Failed to load company.")}</p>`);
+    renderState(`<p class="detail-state">${escapeHtml(error instanceof Error ? error.message : tl("Failed to load company."))}</p>`);
   }
 }
 
 void loadCompany();
+
+subscribeLocale(() => {
+  if (!companyPayload) return;
+  const slug = currentSlug();
+  renderState(buildPage(companyPayload, slug));
+  setupInteractions(companyPayload);
+});

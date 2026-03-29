@@ -11,34 +11,41 @@
     <link rel="stylesheet" href="/styles.css?v=__ASSET_VERSION__" />
     <script src="https://js.stripe.com/clover/stripe.js"></script>
   </head>
-  <body class="page-checkout">
+  <body class="page-checkout" data-page-key="checkout">
     <div class="site-shell checkout-shell">
       <header class="topbar">
-        <a class="brand" href="/" aria-label="ContactPit home">
+        <a class="brand" href="/" data-i18n-aria-label="site.brand.home">
           <img class="brand-mark-image" src="/assets/ios/Icon.svg" alt="" width="40" height="40" />
           <span class="brand-text">ContactPit</span>
         </a>
         <nav class="main-nav" aria-label="Main navigation">
-          <a href="/">Home</a>
-          <a href="/filters/">Filters</a>
-          <a href="/blog/">Blog</a>
-          <a href="/about/">About us</a>
+          <a href="/" data-i18n="nav.home">Home</a>
+          <a href="/filters/" data-i18n="nav.filters">Filters</a>
+          <a href="/blog/" data-i18n="nav.blog">Blog</a>
+          <a href="/about/" data-i18n="nav.about">About us</a>
         </nav>
         <div class="topbar-actions">
-          <a class="primary-link" href="/filters/">Back to filters</a>
+          <div class="language-switcher" data-language-switcher>
+            <span class="language-switcher-label" data-language-label></span>
+            <button class="language-switcher-trigger" type="button" data-language-trigger aria-expanded="false">
+              <span data-language-current>🇬🇧</span>
+            </button>
+            <div class="language-switcher-menu" data-language-menu hidden>
+              <button type="button" role="menuitemradio" data-set-locale="en" aria-checked="true">🇬🇧</button>
+              <button type="button" role="menuitemradio" data-set-locale="et" aria-checked="false">🇪🇪</button>
+            </div>
+          </div>
+          <a class="primary-link" href="/filters/" data-i18n="nav.backToFilters">Back to filters</a>
         </div>
       </header>
 
       <main class="checkout-main">
         <section class="checkout-empty-state" id="checkout-empty-state" hidden>
           <div class="checkout-empty-card">
-            <p class="eyebrow">No order draft</p>
-            <h2>Start from the filters page.</h2>
-            <p>
-              The checkout needs an active filter selection so it can carry your live company count
-              and targeting setup into the order.
-            </p>
-            <a class="primary-link" href="/filters/">Open filters</a>
+            <p class="eyebrow" data-i18n="checkout.empty.eyebrow">No order draft</p>
+            <h2 data-i18n="checkout.empty.title">Start from the filters page.</h2>
+            <p data-i18n="checkout.empty.copy">The checkout needs an active filter selection so it can carry your live company count and targeting setup into the order.</p>
+            <a class="primary-link" href="/filters/" data-i18n="checkout.empty.cta">Open filters</a>
           </div>
         </section>
 
@@ -47,15 +54,15 @@
             <div class="checkout-progress-steps" aria-label="Checkout progress">
               <article class="checkout-progress-step" data-progress-step="package" data-step-index="1">
                 <span class="checkout-progress-index">01</span>
-                <strong>Package</strong>
+                <strong data-i18n="checkout.progress.package">Package</strong>
               </article>
               <article class="checkout-progress-step" data-progress-step="details" data-step-index="2">
                 <span class="checkout-progress-index">02</span>
-                <strong>Buyer</strong>
+                <strong data-i18n="checkout.progress.buyer">Buyer</strong>
               </article>
               <article class="checkout-progress-step" data-progress-step="payment" data-step-index="3">
                 <span class="checkout-progress-index">03</span>
-                <strong>Payment</strong>
+                <strong data-i18n="checkout.progress.payment">Payment</strong>
               </article>
             </div>
           </section>
@@ -65,8 +72,8 @@
               <div class="checkout-stage-shell">
                 <header class="checkout-section-head checkout-stage-headline">
                   <div>
-                    <p class="eyebrow" id="checkout-stage-label">Step 1 of 3</p>
-                    <h2 id="checkout-stage-title">Choose package</h2>
+                    <p class="eyebrow" id="checkout-stage-label" data-i18n="checkout.step1">Step 1 of 3</p>
+                    <h2 id="checkout-stage-title" data-i18n="checkout.title.package">Choose package</h2>
                   </div>
                 </header>
 
@@ -75,7 +82,7 @@
 
                 <div class="checkout-actions">
                   <button class="button button-primary checkout-continue" id="checkout-package-continue-button" type="button">
-                    Continue to details
+                    <span data-i18n="checkout.continue.details">Continue to details</span>
                   </button>
                 </div>
               </div>
@@ -85,8 +92,8 @@
               <div class="checkout-stage-shell">
                 <header class="checkout-section-head checkout-stage-headline">
                   <div>
-                    <p class="eyebrow" id="checkout-stage-label-details">Step 2 of 3</p>
-                    <h2 id="checkout-stage-title-details">Buyer and delivery</h2>
+                    <p class="eyebrow" id="checkout-stage-label-details" data-i18n="checkout.step2">Step 2 of 3</p>
+                    <h2 id="checkout-stage-title-details" data-i18n="checkout.title.details">Buyer and delivery</h2>
                   </div>
                 </header>
 
@@ -94,68 +101,68 @@
                   <section class="checkout-section checkout-section-buyer">
                     <header class="checkout-section-head">
                       <div>
-                        <h3>Buyer</h3>
+                        <h3 data-i18n="checkout.section.buyer">Buyer</h3>
                       </div>
-                      <p>This email receives the payment receipt and order updates.</p>
+                      <p data-i18n="checkout.section.buyerCopy">This email receives the payment receipt and order updates.</p>
                     </header>
 
                     <div class="checkout-field-stack">
                       <label class="field field-strong">
-                        <span>Full name</span>
-                        <input id="recipient-name" type="text" autocomplete="name" placeholder="e.g. Jane Founder" />
+                        <span data-i18n="checkout.field.fullName">Full name</span>
+                        <input id="recipient-name" type="text" autocomplete="name" placeholder="e.g. Jane Founder" data-i18n-placeholder="checkout.field.fullNamePlaceholder" />
                       </label>
                       <label class="field field-strong">
-                        <span>Email</span>
-                        <input id="recipient-email" type="email" autocomplete="email" placeholder="e.g. jane@company.com" />
+                        <span data-i18n="checkout.field.email">Email</span>
+                        <input id="recipient-email" type="email" autocomplete="email" placeholder="e.g. jane@company.com" data-i18n-placeholder="checkout.field.emailPlaceholder" />
                       </label>
                     </div>
 
                     <fieldset class="checkout-radio-group" id="recipient-type-grid">
-                      <legend>Recipient type</legend>
+                      <legend data-i18n="checkout.field.recipientType">Recipient type</legend>
                       <label class="checkout-radio-option is-active" data-recipient-type="individual">
                         <input name="recipient-type" type="radio" value="individual" checked />
                         <span class="checkout-radio-control" aria-hidden="true"></span>
                         <span class="checkout-radio-copy">
-                          <strong>Individual</strong>
+                          <strong data-i18n="checkout.field.individual">Individual</strong>
                         </span>
                       </label>
                       <label class="checkout-radio-option" data-recipient-type="company">
                         <input name="recipient-type" type="radio" value="company" />
                         <span class="checkout-radio-control" aria-hidden="true"></span>
                         <span class="checkout-radio-copy">
-                          <strong>Company</strong>
+                          <strong data-i18n="checkout.field.company">Company</strong>
                         </span>
                       </label>
                     </fieldset>
 
                     <label class="field field-strong" id="company-name-field" hidden>
-                      <span>Company name</span>
-                      <input id="recipient-company-name" type="text" autocomplete="organization" placeholder="e.g. ContactPit OÜ" />
+                      <span data-i18n="checkout.field.companyName">Company name</span>
+                      <input id="recipient-company-name" type="text" autocomplete="organization" placeholder="e.g. ContactPit OÜ" data-i18n-placeholder="checkout.field.companyNamePlaceholder" />
                     </label>
                   </section>
 
                   <section class="checkout-section checkout-section-delivery">
                     <header class="checkout-section-head">
                       <div>
-                        <h3>Delivery</h3>
+                        <h3 data-i18n="checkout.section.delivery">Delivery</h3>
                       </div>
-                      <p>Choose the export and communication language.</p>
+                      <p data-i18n="checkout.section.deliveryCopy">Choose the export and communication language.</p>
                     </header>
 
                     <fieldset class="checkout-radio-group" id="language-grid">
-                      <legend>Language</legend>
+                      <legend data-i18n="checkout.field.language">Language</legend>
                       <label class="checkout-radio-option is-active" data-language="en">
                         <input name="delivery-language" type="radio" value="en" checked />
                         <span class="checkout-radio-control" aria-hidden="true"></span>
                         <span class="checkout-radio-copy">
-                          <strong>English</strong>
+                          <strong data-i18n="site.lang.english">English</strong>
                         </span>
                       </label>
                       <label class="checkout-radio-option" data-language="et">
                         <input name="delivery-language" type="radio" value="et" />
                         <span class="checkout-radio-control" aria-hidden="true"></span>
                         <span class="checkout-radio-copy">
-                          <strong>Estonian</strong>
+                          <strong data-i18n="site.lang.estonian">Estonian</strong>
                         </span>
                       </label>
                     </fieldset>
@@ -164,10 +171,10 @@
 
                 <div class="checkout-actions">
                   <button class="button button-secondary" id="checkout-details-back-button" type="button">
-                    Back
+                    <span data-i18n="checkout.back">Back</span>
                   </button>
                   <button class="button button-primary checkout-continue" id="checkout-details-continue-button" type="button">
-                    Continue to payment
+                    <span data-i18n="checkout.continue.payment">Continue to payment</span>
                   </button>
                 </div>
               </div>
@@ -177,8 +184,8 @@
               <div class="checkout-stage-shell">
                 <header class="checkout-section-head checkout-stage-headline">
                   <div>
-                    <p class="eyebrow" id="checkout-stage-label-payment">Step 3 of 3</p>
-                    <h2 id="checkout-stage-title-payment">Secure payment</h2>
+                    <p class="eyebrow" id="checkout-stage-label-payment" data-i18n="checkout.step3">Step 3 of 3</p>
+                    <h2 id="checkout-stage-title-payment" data-i18n="checkout.title.payment">Secure payment</h2>
                   </div>
                 </header>
 
@@ -190,9 +197,9 @@
                       <span></span>
                     </div>
                     <div class="checkout-invoice-loading-copy">
-                      <p class="eyebrow">Preparing invoice</p>
-                      <h3>Creating the order and invoice request.</h3>
-                      <p>We are locking the request with an idempotency key and handing it off for invoice processing.</p>
+                      <p class="eyebrow" data-i18n="checkout.payment.invoiceEyebrow">Preparing invoice</p>
+                      <h3 data-i18n="checkout.payment.invoiceTitle">Creating the order and invoice request.</h3>
+                      <p data-i18n="checkout.payment.invoiceCopy">We are locking the request with an idempotency key and handing it off for invoice processing.</p>
                     </div>
                     <div class="checkout-invoice-loading-steps" aria-hidden="true">
                       <span></span>
@@ -206,9 +213,9 @@
                       <span></span>
                     </div>
                     <div class="checkout-process-loading-copy">
-                      <p class="eyebrow" id="checkout-payment-loading-eyebrow">Preparing payment</p>
-                      <h3 id="checkout-payment-loading-title">Creating your secure payment session.</h3>
-                      <p id="checkout-payment-loading-copy">We are locking the order and opening the Stripe payment flow for this checkout.</p>
+                      <p class="eyebrow" id="checkout-payment-loading-eyebrow" data-i18n="checkout.payment.loadingEyebrow">Preparing payment</p>
+                      <h3 id="checkout-payment-loading-title" data-i18n="checkout.payment.loadingTitle">Creating your secure payment session.</h3>
+                      <p id="checkout-payment-loading-copy" data-i18n="checkout.payment.loadingCopy">We are locking the order and opening the Stripe payment flow for this checkout.</p>
                     </div>
                     <div class="checkout-process-loading-steps" aria-hidden="true">
                       <span></span>
@@ -220,24 +227,24 @@
                     <div id="payment-element"></div>
                   </div>
                   <div class="checkout-payment-placeholder" id="checkout-payment-placeholder" hidden>
-                    <p class="eyebrow">Stripe configuration required</p>
-                    <h3>Add `STRIPE_PUBLISHABLE_KEY` to enable payment.</h3>
+                    <p class="eyebrow" data-i18n="checkout.payment.placeholderEyebrow">Stripe configuration required</p>
+                    <h3 data-i18n="checkout.payment.placeholderTitle">Add `STRIPE_PUBLISHABLE_KEY` to enable payment.</h3>
                     <p>
-                      Once the publishable key is present, the payment form renders here automatically.
+                      <span data-i18n="checkout.payment.placeholderCopy">Once the publishable key is present, the payment form renders here automatically.</span>
                     </p>
                   </div>
                 </div>
 
                 <div class="checkout-actions">
                   <button class="button button-secondary" id="checkout-back-button" type="button">
-                    Back
+                    <span data-i18n="checkout.back">Back</span>
                   </button>
                   <button class="button button-secondary checkout-invoice-button" id="checkout-invoice-button" type="button">
-                    <span class="checkout-button-label">Request invoice</span>
+                    <span class="checkout-button-label" data-i18n="checkout.invoice">Request invoice</span>
                     <span class="checkout-button-loader" aria-hidden="true"></span>
                   </button>
                   <button class="button button-primary checkout-pay-button" id="checkout-pay-button" type="button">
-                    <span class="checkout-button-label">Pay now</span>
+                    <span class="checkout-button-label" data-i18n="checkout.pay">Pay now</span>
                     <span class="checkout-button-loader" aria-hidden="true"></span>
                   </button>
                 </div>
@@ -248,38 +255,38 @@
           <aside class="checkout-sidebar">
             <section class="checkout-summary-card">
               <div class="checkout-summary-head">
-                <p class="eyebrow">Summary</p>
-                <h2>Your leadlist</h2>
+                <p class="eyebrow" data-i18n="checkout.summary.eyebrow">Summary</p>
+                <h2 data-i18n="checkout.summary.title">Your leadlist</h2>
               </div>
 
               <div class="checkout-summary-stack">
                 <div class="checkout-price-row">
-                  <span>Companies</span>
+                  <span data-i18n="checkout.summary.companies">Companies</span>
                   <strong id="checkout-company-count">0</strong>
                 </div>
                 <div class="checkout-price-row">
-                  <span>Applied filters</span>
+                  <span data-i18n="checkout.summary.appliedFilters">Applied filters</span>
                   <strong id="checkout-filter-count">0</strong>
                 </div>
                 <div class="checkout-price-divider checkout-price-divider-section" aria-hidden="true"></div>
               </div>
 
               <div class="checkout-summary-stack" id="checkout-package-summary">
-                <div class="checkout-summary-placeholder">Choose a package to see pricing.</div>
+                <div class="checkout-summary-placeholder" data-i18n="checkout.summary.packagePrompt">Choose a package to see pricing.</div>
               </div>
 
               <div class="checkout-price-stack">
                 <div class="checkout-price-row">
-                  <span>Subtotal</span>
+                  <span data-i18n="checkout.summary.subtotal">Subtotal</span>
                   <strong id="checkout-price-subtotal">€0</strong>
                 </div>
                 <div class="checkout-price-row">
-                  <span>VAT</span>
+                  <span data-i18n="checkout.summary.vat">VAT</span>
                   <strong id="checkout-price-vat">€0</strong>
                 </div>
                 <div class="checkout-price-divider" aria-hidden="true"></div>
                 <div class="checkout-price-row is-total">
-                  <span>Total</span>
+                  <span data-i18n="checkout.summary.total">Total</span>
                   <strong id="checkout-price-total">€0</strong>
                 </div>
               </div>
@@ -293,31 +300,32 @@
               <div class="checkout-success-mark-ring"></div>
               <div class="checkout-success-mark-core">✓</div>
             </div>
-            <div class="checkout-success-badge" id="checkout-success-badge">Paid</div>
-            <h2 id="checkout-success-title">Order created successfully.</h2>
-            <p id="checkout-success-copy">Your payment completed and the order is now processing.</p>
+            <div class="checkout-success-badge" id="checkout-success-badge" data-i18n="checkout.summary.paid">Paid</div>
+            <h2 id="checkout-success-title" data-i18n="checkout.success.badge">Order created successfully.</h2>
+            <p id="checkout-success-copy" data-i18n="checkout.success.title">Your payment completed and the order is now processing.</p>
             <div class="checkout-success-meta">
               <div class="checkout-success-meta-row">
-                <span>Package</span>
+                <span data-i18n="checkout.summary.package">Package</span>
                 <strong id="checkout-success-package">Basic</strong>
               </div>
               <div class="checkout-success-meta-row">
-                <span>Recipient</span>
+                <span data-i18n="checkout.summary.recipient">Recipient</span>
                 <strong id="checkout-success-recipient">jane@company.com</strong>
               </div>
               <div class="checkout-success-meta-row">
-                <span>Next step</span>
-                <strong id="checkout-success-next-step">We’re processing the order now.</strong>
+                <span data-i18n="checkout.success.next">Next step</span>
+                <strong id="checkout-success-next-step" data-i18n="checkout.success.nextCopy">We’re processing the order now.</strong>
               </div>
             </div>
             <div class="checkout-actions">
-              <a class="button button-primary" href="/filters/">Create another order</a>
+              <a class="button button-primary" href="/filters/" data-i18n="checkout.success.createAnother">Create another order</a>
             </div>
           </div>
         </section>
       </main>
     </div>
 
+    <script type="module" src="/shared/page-init.js?v=__ASSET_VERSION__"></script>
     <script type="module" src="/checkout/checkout.js?v=__ASSET_VERSION__"></script>
   </body>
 </html>

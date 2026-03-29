@@ -10,33 +10,44 @@
     />
     <link rel="stylesheet" href="../styles.css?v=__ASSET_VERSION__" />
   </head>
-  <body class="detail-page detail-page-person">
+  <body class="detail-page detail-page-person" data-page-key="person">
     <div class="site-shell">
       <header class="topbar">
-        <a class="brand" href="/" aria-label="ContactPit home">
+        <a class="brand" href="/" data-i18n-aria-label="site.brand.home">
           <img class="brand-mark-image" src="../assets/ios/Icon.svg" alt="" width="40" height="40" />
           <span class="brand-text">ContactPit</span>
         </a>
         <nav class="main-nav" aria-label="Main navigation">
-          <a href="/">Home</a>
-          <a href="/filters/">Filters</a>
-          <a href="/blog/">Blog</a>
-          <a href="/about/">About us</a>
+          <a href="/" data-i18n="nav.home">Home</a>
+          <a href="/filters/" data-i18n="nav.filters">Filters</a>
+          <a href="/blog/" data-i18n="nav.blog">Blog</a>
+          <a href="/about/" data-i18n="nav.about">About us</a>
         </nav>
         <div class="topbar-actions">
-          <a class="primary-link" href="/filters/">Build a list</a>
+          <div class="language-switcher" data-language-switcher>
+            <span class="language-switcher-label" data-language-label></span>
+            <button class="language-switcher-trigger" type="button" data-language-trigger aria-expanded="false">
+              <span data-language-current>🇬🇧</span>
+            </button>
+            <div class="language-switcher-menu" data-language-menu hidden>
+              <button type="button" role="menuitemradio" data-set-locale="en" aria-checked="true">🇬🇧</button>
+              <button type="button" role="menuitemradio" data-set-locale="et" aria-checked="false">🇪🇪</button>
+            </div>
+          </div>
+          <a class="primary-link" href="/filters/" data-i18n="nav.buildList">Build a list</a>
         </div>
       </header>
 
       <main>
         <section class="section">
           <div class="company-detail-root" id="person-detail-root" aria-live="polite">
-            <p class="detail-state">Loading person…</p>
+            <p class="detail-state" data-i18n="Loading person…">Loading person…</p>
           </div>
         </section>
       </main>
     </div>
 
+    <script type="module" src="../shared/page-init.js?v=__ASSET_VERSION__"></script>
     <script type="module" src="./person.js?v=__ASSET_VERSION__"></script>
   </body>
 </html>

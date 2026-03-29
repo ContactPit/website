@@ -1,4 +1,5 @@
 import { getOrFetchSessionCache, setSessionCache } from "../shared/session-bootstrap-cache.js";
+import { applyI18n, formatNumber, getLocale, localizedText, subscribeLocale, t, tl } from "../shared/i18n.js";
 
 const API_ENDPOINT = "/api/filters";
 const API_BASE_URL = "https://leadlistscraper-524b3d937ddd.herokuapp.com";
@@ -46,12 +47,10 @@ const EMPLOYEE_PRESETS = [
   { label: "1K+", min: "1001", max: "" },
 ];
 
-const countFormatter = new Intl.NumberFormat("en-US");
-
 const appState = {
   configLoaded: false,
   countStatus: "idle",
-  countMessage: "Loading filter configuration and legends.",
+  countMessage: "",
   countValue: null,
   debounceTimer: null,
   activeRequest: null,
@@ -100,7 +99,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupFloatingSummary();
   setupSectionNavigation();
   renderStaticChoices();
+  refreshStaticLocalization();
   await loadFiltersPage();
+  subscribeLocale(() => {
+    refreshStaticLocalization();
+    renderStaticChoices();
+    renderDynamicLists();
+    setCountState(appState.countStatus, appState.countValue, appState.countMessage || t("filters.idle"));
+  });
 });
 
 function cacheElements() {
@@ -169,7 +175,7 @@ function renderStaticChoices() {
   })).join("");
 
   el["status-grid"].innerHTML = STATUS_OPTIONS.map((status) => selectablePill({
-    label: status.label,
+    label: tl(status.label),
     dataset: `data-status-value="${status.value}"`,
   })).join("");
 
@@ -184,9 +190,13 @@ function renderStaticChoices() {
   })).join("");
 }
 
+function refreshStaticLocalization() {
+  applyI18n(document);
+}
+
 async function loadFiltersPage() {
   try {
-    setCountState("loading", null, "Loading filter configuration and legends.");
+    setCountState("loading", null, t("filters.loading"));
     const payload = await fetchFiltersBootstrap();
     appState.filtersConfig = Array.isArray(payload.filtersConfiguration) ? payload.filtersConfiguration : [];
     appState.availableTypes = new Set(
@@ -201,9 +211,9 @@ async function loadFiltersPage() {
 
     syncAvailableSections();
     renderDynamicLists();
-    setCountState("idle", null, "Add at least one filter to fetch a live company count.");
+    setCountState("idle", null, t("filters.idle"));
   } catch (error) {
-    setCountState("error", null, error instanceof Error ? error.message : "Failed to load filters page.");
+    setCountState("error", null, error instanceof Error ? error.message : t("filters.fetchError"));
   }
 }
 
@@ -457,7 +467,7 @@ function renderDeletionReasonResults() {
   const reasons = (appState.legends?.deletion_reasons || appState.legends?.deletionReasons || []);
   const normalized = reasons.map((item) => ({
     id: String(item.id),
-    label: item?.text?.en || item?.text?.et || String(item.id),
+    label: localizedText(item?.text) || String(item.id),
     searchText: `${item?.text?.en || ""} ${item?.text?.et || ""} ${item.id}`.toLowerCase(),
   }));
   const results = filterBySearch(normalized, appState.search.deletionReasons);
@@ -474,7 +484,7 @@ function renderDeletionReasonPills() {
     const reason = reasons.find((item) => String(item.id) === id);
     return {
       value: id,
-      label: reason ? `#${id} · ${reason.text?.en || reason.text?.et || id}` : id,
+      label: reason ? `#${id} · ${localizedText(reason.text) || id}` : id,
     };
   });
   el["selected-deletion-reasons"].innerHTML = renderSelectedPills("deletionReason", values);
@@ -483,7 +493,7 @@ function renderDeletionReasonPills() {
 function renderEconomicActivityResults() {
   const items = mapLocalizedEntries(appState.legends?.economic_activities || appState.legends?.economicActivities || {});
   el["economic-activity-results"].innerHTML = renderResultButtons(items.slice(0, MAX_FILTER_RESULTS), (item) => ({
-    label: `<span>${escapeHtml(item.caption || item.label)}</span>`,
+    label: `<span>${escapeHtml(item.label)}</span>`,
     dataset: `data-economic-activity="${escapeAttribute(item.value)}"`,
     active: appState.selection.economicActivities.has(item.value),
   }));
@@ -500,7 +510,7 @@ function renderEconomicActivityPills() {
 function renderOperatingLicenceResults() {
   const items = mapLocalizedEntries(appState.legends?.operating_licences || appState.legends?.operatingLicences || {});
   el["operating-licence-results"].innerHTML = renderResultButtons(items.slice(0, MAX_FILTER_RESULTS), (item) => ({
-    label: `<span>${escapeHtml(item.caption || item.label)}</span>`,
+    label: `<span>${escapeHtml(item.label)}</span>`,
     dataset: `data-operating-licence="${escapeAttribute(item.value)}"`,
     active: appState.selection.operatingLicences.has(item.value),
   }));
@@ -539,7 +549,7 @@ function updateActiveFilterSummary() {
   el["active-filter-empty"]?.closest(".filters-applied-card")?.classList.toggle("is-empty", labels.length === 0);
   el["floating-active-filter-chips"].innerHTML = chips.length
     ? chips.join("")
-    : '<span class="filters-floating-empty">No filters selected</span>';
+    : `<span class="filters-floating-empty">${escapeHtml(t("filters.noneSelected"))}</span>`;
 }
 
 function scheduleCountRefresh() {
@@ -552,12 +562,12 @@ async function requestCount() {
 
   const payload = buildCheckDataCountPayload();
   if (!payload) {
-    setCountState("idle", null, "Add at least one filter to fetch a live company count.");
+    setCountState("idle", null, t("filters.idle"));
     return;
   }
 
   if (!isValidPayload(payload)) {
-    setCountState("error", null, "The current filter combination is incomplete or invalid.");
+    setCountState("error", null, tl("The current filter combination is incomplete or invalid."));
     return;
   }
 
@@ -567,7 +577,7 @@ async function requestCount() {
 
   const controller = new AbortController();
   appState.activeRequest = controller;
-  setCountState("loading", null, "Updating live company count.");
+  setCountState("loading", null, tl("Updating live company count."));
 
   try {
     const data = await postCountPayload(payload, controller.signal);
@@ -576,12 +586,12 @@ async function requestCount() {
       throw new Error("Count response was not numeric.");
     }
 
-    setCountState("success", count, "Live company count from the same endpoint used by the iOS app.");
+    setCountState("success", count, tl("Live company count from the same endpoint used by the iOS app."));
   } catch (error) {
     if (controller.signal.aborted) {
       return;
     }
-    setCountState("error", null, error instanceof Error ? error.message : "Failed to fetch company count.");
+    setCountState("error", null, error instanceof Error ? error.message : t("filters.countError"));
   } finally {
     if (appState.activeRequest === controller) {
       appState.activeRequest = null;
@@ -592,12 +602,12 @@ async function requestCount() {
 function persistCheckoutDraft() {
   const payload = buildCheckDataCountPayload();
   if (!payload || !isValidPayload(payload)) {
-    setCountState("error", null, "Add at least one valid filter combination before opening checkout.");
+    setCountState("error", null, tl("Add at least one valid filter combination before opening checkout."));
     return false;
   }
 
   if (typeof appState.countValue !== "number" || Number.isNaN(appState.countValue) || appState.countValue <= 0) {
-    setCountState("error", null, "Wait for the live company count before opening checkout.");
+    setCountState("error", null, tl("Wait for the live company count before opening checkout."));
     return false;
   }
 
@@ -620,7 +630,7 @@ function setCountState(status, count, message) {
     ? '<span class="count-loading-dot"></span>'
     : appState.countValue == null
       ? "0"
-      : countFormatter.format(appState.countValue);
+      : formatNumber(appState.countValue, { maximumFractionDigits: 0 });
   el["companies-count-value"].innerHTML = countMarkup;
   el["floating-companies-count-value"].textContent = countMarkup.includes("count-loading-dot")
     ? "..."
@@ -1105,28 +1115,29 @@ function activeFilterLabels() {
   const payload = buildCheckDataCountPayload();
   if (!payload) return labels;
 
-  if (payload.location) labels.push(`${payload.location.counties.length} location ${payload.location.counties.length === 1 ? "group" : "groups"}`);
-  if (payload.emtak_codes) labels.push(`${payload.emtak_codes.values.length} EMTAK`);
-  if (payload.legal_forms) labels.push(`${payload.legal_forms.values.length} legal forms`);
-  if (payload.status) labels.push(`${payload.status.values.length} statuses`);
-  if (payload.operating_licences) labels.push(`${payload.operating_licences.length} licences`);
-  if (payload.economic_activities) labels.push(`${payload.economic_activities.length} activities`);
-  if (payload.annual_reports) labels.push("annual reports");
-  if (payload.beneficiaries) labels.push("beneficiaries");
-  if (payload.board_members) labels.push("board members");
-  if (payload.turnovers) labels.push("turnover");
-  if (payload.tax_information) labels.push("tax");
-  if (payload.registration) labels.push("registration");
-  if (payload.website_available !== undefined) labels.push("website");
-  if (payload.employees) labels.push("employees");
+  if (payload.location) {
+    labels.push(`${payload.location.counties.length} ${tl(payload.location.counties.length === 1 ? "location group" : "location groups")}`);
+  }
+  if (payload.emtak_codes) labels.push(`${payload.emtak_codes.values.length} ${tl("EMTAK")}`);
+  if (payload.legal_forms) labels.push(`${payload.legal_forms.values.length} ${tl("legal forms")}`);
+  if (payload.status) labels.push(`${payload.status.values.length} ${tl("statuses")}`);
+  if (payload.operating_licences) labels.push(`${payload.operating_licences.length} ${tl("licences")}`);
+  if (payload.economic_activities) labels.push(`${payload.economic_activities.length} ${tl("activities")}`);
+  if (payload.annual_reports) labels.push(t("filters_header_annual_reports"));
+  if (payload.beneficiaries) labels.push(t("filters_header_beneficiaries"));
+  if (payload.board_members) labels.push(t("filters_header_board_members"));
+  if (payload.turnovers) labels.push(t("filters_header_turnover"));
+  if (payload.tax_information) labels.push(t("filters_header_taxInformation"));
+  if (payload.registration) labels.push(t("filters_header_registration"));
+  if (payload.website_available !== undefined) labels.push(t("filters_header_website_availability"));
+  if (payload.employees) labels.push(t("filters_header_employees"));
   return labels;
 }
 
 function mapLocalizedEntries(entries) {
   return Object.entries(entries).map(([key, value]) => ({
     value: key,
-    label: value?.en || key,
-    caption: value?.et && value.et !== value.en ? value.et : "Live legend",
+    label: localizedText(value) || key,
     searchText: `${key} ${value?.en || ""} ${value?.et || ""}`.toLowerCase(),
   }));
 }
@@ -1139,7 +1150,7 @@ function filterBySearch(items, term) {
 
 function renderResultButtons(items, mapFn) {
   if (!items.length) {
-    return '<p class="empty-inline">No matches yet. Try a broader search.</p>';
+    return `<p class="empty-inline">${escapeHtml(t("filters.noMatches"))}</p>`;
   }
   return items.map((item) => {
     const mapped = mapFn(item);
@@ -1153,7 +1164,7 @@ function renderResultButtons(items, mapFn) {
 
 function renderSelectedPills(type, values) {
   if (!values.length) {
-    return '<p class="empty-inline">Nothing selected.</p>';
+    return `<p class="empty-inline">${escapeHtml(tl("Nothing selected."))}</p>`;
   }
   return values.map((entry) => {
     const item = typeof entry === "string" ? { value: entry, label: entry } : entry;
@@ -1185,13 +1196,18 @@ function locationLabelForKey(key) {
 
 function emtakLabelForCode(code) {
   const item = findEmtakNode(code, appState.emtakTree);
-  return item?.description || "EMTAK";
+  if (!item) return tl("EMTAK");
+  return localizedText({
+    en: item.descriptionEn,
+    et: item.descriptionEt,
+  }) || tl("EMTAK");
 }
 
 function normalizeEmtakTree(nodes) {
   return nodes.map((node) => ({
     code: node.Code || node.code || "",
-    description: node.DescriptionEn || node.descriptionEn || node.DescriptionEt || node.descriptionEt || "",
+    descriptionEn: node.DescriptionEn || node.descriptionEn || "",
+    descriptionEt: node.DescriptionEt || node.descriptionEt || "",
     children: normalizeEmtakTree(node.children || []),
     expanded: false,
   }));
@@ -1199,17 +1215,21 @@ function normalizeEmtakTree(nodes) {
 
 function renderEmtakTree(nodes, level = 0) {
   if (!nodes.length) {
-    return '<p class="empty-inline">No EMTAK codes available.</p>';
+    return `<p class="empty-inline">${escapeHtml(t("filters.noEmtak"))}</p>`;
   }
 
   return nodes.map((node) => {
     const selectable = level > 0;
     const selected = appState.selection.emtakCodes.has(node.code);
     const hasChildren = node.children.length > 0;
+    const description = localizedText({
+      en: node.descriptionEn,
+      et: node.descriptionEt,
+    });
     const row = `
       <div class="emtak-node-row level-${level}${selectable ? "" : " emtak-node-row-root"}">
         ${selectable ? `
-          <button class="tree-select-button${selected ? " is-active" : ""}" type="button" data-emtak-node="${escapeAttribute(node.code)}" aria-label="Select ${escapeAttribute(node.code)}">
+          <button class="tree-select-button${selected ? " is-active" : ""}" type="button" data-emtak-node="${escapeAttribute(node.code)}" aria-label="${escapeAttribute(`${tl("Select")} ${node.code}`)}">
             ${selected ? "✓" : "+"}
           </button>
         ` : ""}
@@ -1217,7 +1237,7 @@ function renderEmtakTree(nodes, level = 0) {
           <span class="emtak-node-copy">
             <span class="emtak-node-code">${escapeHtml(node.code)}</span>
             <span class="emtak-node-separator" aria-hidden="true">·</span>
-            <span class="emtak-node-description">${escapeHtml(node.description)}</span>
+            <span class="emtak-node-description">${escapeHtml(description)}</span>
           </span>
           ${hasChildren ? `<span class="tree-chevron" aria-hidden="true">${node.expanded ? "▾" : "▸"}</span>` : ""}
         </button>
@@ -1283,7 +1303,7 @@ function normalizeLocationTree(locations) {
 
 function renderLocationTree(nodes, level = 0) {
   if (!nodes.length) {
-    return '<p class="empty-inline">No locations available.</p>';
+    return `<p class="empty-inline">${escapeHtml(t("filters.noLocations"))}</p>`;
   }
 
   return nodes.map((node) => {
@@ -1291,7 +1311,7 @@ function renderLocationTree(nodes, level = 0) {
     const hasChildren = node.children.length > 0;
     const row = `
       <div class="location-node-row level-${level}">
-        <button class="tree-select-button${selected ? " is-active" : ""}" type="button" data-location-node="${escapeAttribute(node.key)}" aria-label="Select ${escapeAttribute(node.label)}">
+        <button class="tree-select-button${selected ? " is-active" : ""}" type="button" data-location-node="${escapeAttribute(node.key)}" aria-label="${escapeAttribute(`${tl("Select")} ${node.label}`)}">
           ${selected ? "✓" : "+"}
         </button>
         <button class="location-node${selected ? " is-active" : ""}${hasChildren ? " has-children" : ""}" type="button" ${hasChildren ? `data-location-expand="${escapeAttribute(node.key)}"` : ""}>

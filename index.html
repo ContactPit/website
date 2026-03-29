@@ -10,31 +10,40 @@
     />
     <link rel="stylesheet" href="./styles.css?v=__ASSET_VERSION__" />
   </head>
-  <body class="page-home">
+  <body class="page-home" data-page-key="home">
     <div class="site-shell">
       <header class="topbar">
-        <a class="brand" href="/" aria-label="ContactPit home">
+        <a class="brand" href="/" data-i18n-aria-label="site.brand.home">
           <img class="brand-mark-image" src="./assets/ios/Icon.svg" alt="" width="40" height="40" />
           <span class="brand-text">ContactPit</span>
         </a>
         <nav class="main-nav" aria-label="Main navigation">
-          <a class="is-active" href="/">Home</a>
-          <a href="/filters/">Filters</a>
-          <a href="/blog/">Blog</a>
-          <a href="/about/">About us</a>
+          <a class="is-active" href="/" data-i18n="nav.home">Home</a>
+          <a href="/filters/" data-i18n="nav.filters">Filters</a>
+          <a href="/blog/" data-i18n="nav.blog">Blog</a>
+          <a href="/about/" data-i18n="nav.about">About us</a>
         </nav>
         <div class="topbar-actions">
-          <a class="primary-link" href="/filters/">Build a list</a>
+          <div class="language-switcher" data-language-switcher>
+            <span class="language-switcher-label" data-language-label></span>
+            <button class="language-switcher-trigger" type="button" data-language-trigger aria-expanded="false">
+              <span data-language-current>🇬🇧</span>
+            </button>
+            <div class="language-switcher-menu" data-language-menu hidden>
+              <button type="button" role="menuitemradio" data-set-locale="en" aria-checked="true">🇬🇧</button>
+              <button type="button" role="menuitemradio" data-set-locale="et" aria-checked="false">🇪🇪</button>
+            </div>
+          </div>
+          <a class="primary-link" href="/filters/" data-i18n="nav.buildList">Build a list</a>
         </div>
       </header>
 
       <main>
         <section class="hero section" id="hero">
           <div class="hero-copy hero-copy-centered">
-            <h1>Search the market with precision.</h1>
-            <p class="hero-text">
-              Find companies, people, registry codes, and market signals through one clean
-              workflow built for research, targeting, and outbound action.
+            <h1 data-i18n="home.hero.title">Search the market with precision.</h1>
+            <p class="hero-text" data-i18n="home.hero.copy">
+              Find companies, people, registry codes, and market signals through one clean workflow built for research, targeting, and outbound action.
             </p>
             <form
               class="hero-search-form hero-search-form-centered search-shell"
@@ -43,13 +52,14 @@
               method="get"
               autocomplete="off"
             >
-              <label class="hero-search-label" for="hero-search-input">Search</label>
+              <label class="hero-search-label" for="hero-search-input" data-i18n="home.hero.searchLabel">Search</label>
               <div class="hero-search-field-row">
                 <input
                   id="hero-search-input"
                   class="hero-search-input"
                   type="search"
                   name="q"
+                  data-i18n-placeholder="home.hero.searchPlaceholder"
                   placeholder="Search companies, people, registry codes..."
                 />
               </div>
@@ -59,6 +69,7 @@
                 class="hero-search-results"
                 id="hero-search-results"
                 role="listbox"
+                data-i18n-aria-label="home.hero.resultsLabel"
                 aria-label="Search results"
                 hidden
               ></div>
@@ -68,20 +79,17 @@
 
         <section class="section section-tight" id="trending">
           <div class="section-heading">
-            <p class="eyebrow">Trending</p>
-            <h2>What people are searching.</h2>
+            <p class="eyebrow" data-i18n="home.trending.eyebrow">Trending</p>
+            <h2 data-i18n="home.trending.title">What people are searching.</h2>
           </div>
           <div class="trending-marquee-group" id="trending-grid"></div>
         </section>
 
         <section class="section" id="leaderboards">
           <div class="section-heading">
-            <p class="eyebrow">Leaderboards</p>
-            <h2>Rankings that surface the companies leading each category.</h2>
-            <p>
-              Compare top performers across employers, salaries, turnover, profit, and other key
-              business signals at a glance.
-            </p>
+            <p class="eyebrow" data-i18n="home.leaderboards.eyebrow">Leaderboards</p>
+            <h2 data-i18n="home.leaderboards.title">Rankings that surface the companies leading each category.</h2>
+            <p data-i18n="home.leaderboards.copy">Compare top performers across employers, salaries, turnover, profit, and other key business signals at a glance.</p>
           </div>
           <div class="leaderboard-rail-shell">
             <div class="leaderboard-viewport">
@@ -105,18 +113,15 @@
         <section class="section" id="filter-banner">
           <a class="filters-banner" href="/filters/">
             <div class="filters-banner-copy">
-              <p class="eyebrow">Filters</p>
-              <h2>Build the exact outbound segment you want, then turn it into revenue.</h2>
-              <p>
-                Narrow audiences, validate counts, and create lead lists around the exact company
-                profile you want to target.
-              </p>
+              <p class="eyebrow" data-i18n="home.banner.eyebrow">Filters</p>
+              <h2 data-i18n="home.banner.title">Build the exact outbound segment you want, then turn it into revenue.</h2>
+              <p data-i18n="home.banner.copy">Narrow audiences, validate counts, and create lead lists around the exact company profile you want to target.</p>
               <div class="filters-banner-points">
-                <span>Live count checks</span>
-                <span>Audience narrowing</span>
-                <span>Leadlist intent</span>
+                <span data-i18n="home.banner.point.liveCount">Live count checks</span>
+                <span data-i18n="home.banner.point.narrowing">Audience narrowing</span>
+                <span data-i18n="home.banner.point.intent">Leadlist intent</span>
               </div>
-              <span class="button button-primary">Open filters</span>
+              <span class="button button-primary" data-i18n="home.banner.cta">Open filters</span>
             </div>
             <div class="filters-banner-art filters-banner-art-abstract" aria-hidden="true">
               <div class="filter-orbit filter-orbit-a"></div>
@@ -131,19 +136,16 @@
 
         <section class="section" id="counties">
           <div class="section-heading">
-            <p class="eyebrow">Counties</p>
-            <h2>Regional views that bring local market context into focus.</h2>
-            <p>
-              Explore counties through a clear visual index and quickly orient around regional hubs
-              and market coverage.
-            </p>
+            <p class="eyebrow" data-i18n="home.counties.eyebrow">Counties</p>
+            <h2 data-i18n="home.counties.title">Regional views that bring local market context into focus.</h2>
+            <p data-i18n="home.counties.copy">Explore counties through a clear visual index and quickly orient around regional hubs and market coverage.</p>
           </div>
           <div class="counties-grid" id="counties-grid"></div>
         </section>
 
         <section class="section" id="catalog">
           <div class="section-heading">
-            <p class="eyebrow">Political parties</p>
+            <p class="eyebrow" data-i18n="home.parties.eyebrow">Political parties</p>
             <h2 id="parties-title">Political parties</h2>
             <p id="parties-subtitle"></p>
           </div>
@@ -152,7 +154,7 @@
 
         <section class="section" id="public-companies">
           <div class="section-heading">
-            <p class="eyebrow">Publicly traded companies</p>
+            <p class="eyebrow" data-i18n="home.public.eyebrow">Publicly traded companies</p>
             <h2 id="public-title">Publicly traded companies</h2>
             <p id="public-subtitle"></p>
           </div>
@@ -161,8 +163,8 @@
 
         <section class="section" id="testimonials">
           <div class="section-heading">
-            <p class="eyebrow">Testimonials</p>
-            <h2>What customers say.</h2>
+            <p class="eyebrow" data-i18n="home.testimonials.eyebrow">Testimonials</p>
+            <h2 data-i18n="home.testimonials.title">What customers say.</h2>
           </div>
           <div class="testimonials-feature" id="testimonials-grid"></div>
         </section>
@@ -173,23 +175,21 @@
           <img class="footer-mark" src="./assets/ios/Icon.svg" alt="" width="76" height="76" />
           <div>
             <p class="footer-kicker">ContactPit</p>
-            <p class="footer-copy">
-              Company intelligence for discovery, targeting, filters, and outbound action.
-            </p>
+            <p class="footer-copy" data-i18n="footer.copy">Company intelligence for discovery, targeting, filters, and outbound action.</p>
           </div>
         </div>
 
         <div class="footer-column">
-          <h3>Menu</h3>
-          <a href="/">Home</a>
-          <a href="/filters/">Filters</a>
-          <a href="/blog/">Blog</a>
-          <a href="/about/">About us</a>
-          <a href="#testimonials">Testimonials</a>
+          <h3 data-i18n="footer.menu">Menu</h3>
+          <a href="/" data-i18n="nav.home">Home</a>
+          <a href="/filters/" data-i18n="nav.filters">Filters</a>
+          <a href="/blog/" data-i18n="nav.blog">Blog</a>
+          <a href="/about/" data-i18n="nav.about">About us</a>
+          <a href="#testimonials" data-i18n="footer.testimonials">Testimonials</a>
         </div>
 
         <div class="footer-column">
-          <h3>Quick contact</h3>
+          <h3 data-i18n="footer.quickContact">Quick contact</h3>
           <a href="tel:+37256982772">+372 56982772</a>
           <a href="mailto:contactpit@contactpit.com">contactpit@contactpit.com</a>
           <p>Laeva 2, 10111 Tallinn</p>
@@ -202,6 +202,7 @@
       </footer>
     </div>
 
+    <script type="module" src="./shared/page-init.js?v=__ASSET_VERSION__"></script>
     <script type="module" src="./script.js?v=__ASSET_VERSION__"></script>
   </body>
 </html>
